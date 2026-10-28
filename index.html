@@ -239,42 +239,106 @@ form.f .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 }
 body.arcade-open .zoom,body.arcade-open .route,body.arcade-open .hint{visibility:hidden}
 
-/* ---------- character select ---------- */
-.pxwin.charsel{inset:0;margin:auto;width:min(620px,calc(100vw - 40px));height:fit-content;max-height:calc(100dvh - 32px);z-index:8}
-.cs-body{padding:16px 18px 18px;overflow:auto}
-.cs-body h2{font:400 40px/1 var(--hd);margin:0 0 2px}
-.cs-body>p{margin:0 0 14px;font:400 20px/1.1 var(--hd);color:#555}
-.cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.cs-card{appearance:none;border:3px solid var(--ink);background:#fff;color:var(--ink);padding:0;cursor:pointer;text-align:left;display:flex;flex-direction:column;box-shadow:4px 4px 0 var(--ink);outline:3px solid transparent;outline-offset:2px;transition:transform .12s,box-shadow .12s;font:inherit}
-.cs-card:hover,.cs-card:focus-visible{transform:translate(-3px,-5px);box-shadow:7px 9px 0 var(--ink);outline-color:var(--yellow)}
-.cs-pv{display:block;aspect-ratio:16/10;border-bottom:3px solid var(--ink);background:var(--c);background-image:linear-gradient(rgba(22,22,29,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(22,22,29,.08) 1px,transparent 1px);background-size:16px 16px;position:relative}
-.cs-pv svg{position:absolute;inset:6% 0 0;width:100%;height:94%;overflow:visible}
+/* ---------- character select + closet ---------- */
+.pxwin.charsel{inset:0;margin:auto;width:min(800px,calc(100vw - 40px));height:fit-content;max-height:calc(100dvh - 32px);z-index:8}
+.cs-body{padding:14px 18px 0;overflow:auto;flex:1;min-height:0}
+.cs-body h2{font:400 36px/1 var(--hd);margin:0 0 2px}
+.cs-body>p{margin:0 0 10px;font:400 19px/1.1 var(--hd);color:#555}
+.cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cs-card{appearance:none;border:3px solid var(--ink);background:#fff;color:var(--ink);padding:0;cursor:pointer;text-align:left;display:flex;box-shadow:4px 4px 0 var(--ink);outline:3px solid transparent;outline-offset:2px;transition:transform .12s,box-shadow .12s;font:inherit;position:relative}
+.cs-card:hover,.cs-card:focus-visible{transform:translate(-2px,-3px);box-shadow:6px 7px 0 var(--ink)}
+.cs-card:focus-visible{outline-color:var(--blue)}
+.cs-card.sel{outline-color:var(--yellow);background:#fffbe9}
+.cs-pv{display:block;flex:none;width:96px;border-right:3px solid var(--ink);background:var(--c);background-image:linear-gradient(rgba(22,22,29,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(22,22,29,.08) 1px,transparent 1px);background-size:12px 12px;position:relative}
+.cs-pv svg{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);overflow:visible}
 .cs-pv svg>g{animation:csbob 1.2s ease-in-out infinite}
 .cs-card[data-char=astro] .cs-pv svg>g{animation-duration:.9s}
 @keyframes csbob{50%{transform:translateY(-3px)}}
-.cs-txt{display:block;padding:10px 12px 12px}
-.cs-name{display:block;font:400 28px/1 var(--hd)}
-.cs-desc{display:block;font-size:13px;line-height:1.4;margin:6px 0 10px;min-height:3.6em}
-.cs-spd{display:flex;align-items:center;gap:8px;font:400 19px/1 var(--hd)}
+.cs-txt{display:block;padding:8px 10px 9px;min-width:0}
+.cs-name{display:block;font:400 25px/1 var(--hd)}
+.cs-desc{display:block;font-size:12px;line-height:1.35;margin:4px 0 6px}
+.cs-spd{display:flex;align-items:center;gap:7px;font:400 18px/1 var(--hd)}
 .cs-spd i{display:flex;gap:3px}
-.cs-spd i b{width:14px;height:12px;border:2px solid var(--ink);background:#fff}
+.cs-spd i b{width:12px;height:11px;border:2px solid var(--ink);background:#fff}
 .cs-spd i b.on{background:var(--orange)}
-.cs-cur{display:inline-block;margin-top:10px;font:400 18px/1 var(--hd);background:var(--ink);color:var(--cream);padding:3px 8px;visibility:hidden}
+.cs-cur{position:absolute;top:-12px;right:8px;font:400 16px/1 var(--hd);background:var(--green);color:var(--ink);border:2px solid var(--ink);padding:2px 6px;visibility:hidden}
 .cs-card.current .cs-cur{visibility:visible}
-.cs-card.current{outline-color:var(--green)}
+.cs-studio{display:grid;grid-template-columns:250px 1fr;gap:16px;margin-top:16px}
+.cs-stage{border:3px solid var(--ink);background:#dbeaff;background-image:linear-gradient(rgba(22,22,29,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(22,22,29,.08) 1px,transparent 1px);background-size:16px 16px;display:flex;flex-direction:column;box-shadow:4px 4px 0 var(--ink)}
+.cs-stage[data-k=walk]{background-color:#dcf7ea}
+.cs-view{flex:1;min-height:236px;position:relative;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.cs-view:active{cursor:grabbing}
+.cs-view svg{position:absolute;inset:8px 8px 0;width:calc(100% - 16px);height:calc(100% - 8px);overflow:visible}
+.cs-floor{fill:rgba(22,22,29,.16)}
+.cs-turn{display:flex;align-items:center;gap:6px;padding:6px;border-top:3px solid var(--ink);background:var(--cream)}
+.cs-turn button{appearance:none;border:2px solid var(--ink);background:#fff;color:var(--ink);height:32px;min-width:36px;cursor:pointer;font:400 20px/1 var(--hd);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 6px}
+.cs-turn button:hover{background:var(--yellow)}
+.cs-turn button svg{width:18px;height:18px}
+.cs-turn .spin{flex:1}
+.cs-turn .spin[aria-pressed=true]{background:var(--ink);color:var(--cream)}
+.cs-turn .spin[aria-pressed=true] svg{animation:csrot 1.6s linear infinite}
+@keyframes csrot{to{transform:rotate(360deg)}}
+.cs-tip{font:400 15px/1 var(--hd);color:#555;text-align:center;padding:0 0 5px;background:var(--cream)}
+.cs-opts{display:flex;flex-direction:column;gap:9px;min-width:0}
+.cs-row{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:8px}
+.cs-lab{font:400 20px/1 var(--hd)}
+.cs-ch{display:flex;flex-wrap:wrap;gap:6px}
+.cs-sw{appearance:none;width:28px;height:28px;border:2px solid var(--ink);background:var(--sw);cursor:pointer;padding:0;box-shadow:2px 2px 0 var(--ink)}
+.cs-sw[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:2px;box-shadow:none;transform:translate(1px,1px)}
+.cs-chip{appearance:none;border:2px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;font:400 18px/1 var(--hd);padding:4px 8px 3px;box-shadow:2px 2px 0 var(--ink)}
+.cs-chip:hover,.cs-sw:hover{background-color:var(--yellow)}
+.cs-sw:hover{background-color:var(--sw);transform:translate(-1px,-1px)}
+.cs-cust{position:relative;display:inline-block;background:conic-gradient(#ff6b2c,#ffc933,#3fcf8e,#3db8ff,#6d5cf0,#ff7eb9,#ff6b2c)}
+.cs-cust::after{content:"+";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:400 22px/1 var(--hd);color:#fff;text-shadow:0 0 2px var(--ink),0 0 2px var(--ink);pointer-events:none}
+.cs-cust.on{background:var(--sw);outline:3px solid var(--ink);outline-offset:2px;box-shadow:none}
+.cs-cust.on::after{content:"";inset:auto -2px -2px auto;width:9px;height:9px;border:2px solid var(--ink);background:conic-gradient(#ff6b2c,#ffc933,#3fcf8e,#3db8ff,#6d5cf0,#ff7eb9,#ff6b2c)}
+.cs-cust:hover{transform:translate(-1px,-1px)}
+.cs-cust input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+.cs-cust:focus-within{outline:3px solid var(--blue);outline-offset:2px}
+.cs-chip[aria-pressed=true]{background:var(--ink);color:var(--cream);box-shadow:none;transform:translate(1px,1px)}
+.cs-astro-note{font:400 15px/1.1 var(--hd);color:#666;margin:0}
+.cs-foot{position:sticky;bottom:0;display:flex;gap:8px;align-items:center;padding:12px 0 14px;margin-top:6px;background:var(--cream);border-top:2px dashed rgba(22,22,29,.25)}
+.cs-foot button{appearance:none;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;font:400 21px/1 var(--hd);padding:7px 12px 6px;box-shadow:3px 3px 0 var(--ink)}
+.cs-foot button:hover{background:var(--yellow)}
+.cs-foot .play{margin-left:auto;background:var(--orange);color:#fff;padding:7px 22px 6px;font-size:24px}
+.cs-foot .play:hover{background:var(--ink)}
 body.charsel-open .zoom,body.charsel-open .route,body.charsel-open .hint{visibility:hidden}
 #b-char .cs-lbl{font:inherit}
+/* closet: which hair / eyes / accessory pieces of the sprite show */
+[data-hs],[data-ey],[data-ac]{display:none}
+[data-hair=curly] [data-hs~=curly],[data-hair=straight] [data-hs~=straight],[data-hair=long] [data-hs~=long],[data-hair=bun] [data-hs~=bun],
+[data-eyes=dot] [data-ey~=dot],[data-eyes=happy] [data-ey~=happy],[data-eyes=sparkle] [data-ey~=sparkle],[data-eyes=freckle] [data-ey~=freckle],
+[data-acc=glasses] [data-ac~=glasses],[data-acc=shades] [data-ac~=shades],[data-acc=cap] [data-ac~=cap],[data-acc=phones] [data-ac~=phones],[data-acc=flower] [data-ac~=flower]{display:inline}
+[data-acc=cap] [data-hs=bun]{display:none}
+[data-pt],[data-mt]{display:none}
+[data-hm]{display:none}
+[data-helm=classic] [data-hm~=classic],[data-helm=star] [data-hm~=star],[data-helm=ears] [data-hm~=ears],[data-helm=gold] [data-hm~=gold]{display:inline}
+[data-pet=bear] [data-pt~=bear],[data-mount=bear] [data-mt~=bear],[data-pet=cat] [data-pt~=cat],[data-mount=cat] [data-mt~=cat],[data-pet=bunny] [data-pt~=bunny],[data-mount=bunny] [data-mt~=bunny],[data-pet=frog] [data-pt~=frog],[data-mount=frog] [data-mt~=frog],[data-pet=panda] [data-pt~=panda],[data-mount=panda] [data-mt~=panda]{display:inline}
+.charsel[data-kind=astro] [data-only=walk],.charsel[data-kind=walk] [data-only=astro]{display:none}
 @media (max-width:760px){
   .pxwin.charsel{width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}
-  .cs-body{padding:12px}
-  .cs-body h2{font-size:32px}
-  .cs-body>p{font-size:17px;margin-bottom:10px}
+  .cs-body{padding:10px 12px 0}
+  .cs-body h2{font-size:30px}
+  .cs-body>p{font-size:16px;margin-bottom:8px}
   .cs-grid{gap:10px}
-  .cs-name{font-size:22px}
-  .cs-desc{font-size:12px;min-height:5.6em}
-  .cs-txt{padding:8px}
-  .cs-spd{font-size:16px;gap:5px}
-  .cs-spd i b{width:9px;height:10px}
+  .cs-pv{width:58px}
+  .cs-name{font-size:20px}
+  .cs-desc{display:none}
+  .cs-txt{padding:6px 7px}
+  .cs-spd{font-size:15px;gap:4px;margin-top:4px}
+  .cs-spd i b{width:8px;height:9px}
+  .cs-studio{grid-template-columns:1fr;gap:12px;margin-top:14px}
+  .cs-view{min-height:150px}
+  .cs-spd>span{display:none}
+  .cs-turn{padding:5px}
+  .cs-turn button{height:30px}
+  .cs-row{grid-template-columns:70px 1fr;gap:6px}
+  .cs-lab{font-size:18px}
+  .cs-sw{width:26px;height:26px}
+  .cs-chip{font-size:17px;padding:3px 6px 2px}
+  .cs-foot{padding:10px 0 12px;gap:6px}
+  .cs-foot button{font-size:18px;padding:6px 8px 5px}
+  .cs-foot .play{font-size:21px;padding:6px 14px 5px}
   #b-char .cs-lbl{display:none}
 }
 .vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -349,7 +413,7 @@ body.charsel-open .zoom,body.charsel-open .route,body.charsel-open .hint{visibil
   <div class="pxbar"><span>SELECT_CHARACTER.EXE</span><span class="stripes" aria-hidden="true"></span><button type="button" id="cs-close" aria-label="Close">✕</button></div>
   <div class="cs-body">
     <h2 id="cs-title"><span lang="en">Select character</span><span lang="vi">Chọn nhân vật</span></h2>
-    <p><span lang="en">Pick who explores GMT City. You can switch any time.</span><span lang="vi">Chọn người dạo GMT City. Đổi lại lúc nào cũng được.</span></p>
+    <p><span lang="en">Pick who explores GMT City, then dress them up. You can change it any time.</span><span lang="vi">Chọn người dạo GMT City rồi phối đồ cho họ. Đổi lại lúc nào cũng được.</span></p>
     <div class="cs-grid">
       <button type="button" class="cs-card" data-char="walk" style="--c:#dcf7ea">
         <span class="cs-pv" data-pv="walk"></span>
@@ -369,6 +433,23 @@ body.charsel-open .zoom,body.charsel-open .route,body.charsel-open .hint{visibil
           <span class="cs-cur"><span lang="en">▶ PLAYING</span><span lang="vi">▶ ĐANG CHƠI</span></span>
         </span>
       </button>
+    </div>
+    <div class="cs-studio">
+      <div class="cs-stage" data-k="walk">
+        <div class="cs-view" id="cs-view" aria-label="Character preview, drag to turn"></div>
+        <div class="cs-tip"><span lang="en">Drag to turn 360°</span><span lang="vi">Kéo để xoay 360°</span></div>
+        <div class="cs-turn">
+          <button type="button" id="cs-left" aria-label="Turn left">◀</button>
+          <button type="button" class="spin" id="cs-spin" aria-pressed="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8A5.5 5.5 0 1 1 11.6 3.8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.2 1.6 13.4 1.9 12.6 6.1Z" fill="currentColor"/></svg>360°</button>
+          <button type="button" id="cs-right" aria-label="Turn right">▶</button>
+        </div>
+      </div>
+      <div class="cs-opts" id="cs-opts"></div>
+    </div>
+    <div class="cs-foot">
+      <button type="button" id="cs-rand"><span lang="en">Random</span><span lang="vi">Ngẫu nhiên</span></button>
+      <button type="button" id="cs-reset"><span lang="en">Default</span><span lang="vi">Mặc định</span></button>
+      <button type="button" class="play" id="cs-play"><span lang="en">▶ PLAY</span><span lang="vi">▶ CHƠI</span></button>
     </div>
   </div>
 </section>
@@ -515,7 +596,7 @@ body.charsel-open .zoom,body.charsel-open .route,body.charsel-open .hint{visibil
   <div class="ar-keys" id="ar-keys"></div>
 </section>
 
-<script src="city.js?v=11"></script>
+<script src="city.js?v=28"></script>
 <script src="games/minesweeper.js"></script>
 <script src="games/solitaire.js"></script>
 <script src="arcade.js"></script>
