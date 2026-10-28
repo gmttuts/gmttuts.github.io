@@ -900,7 +900,8 @@
       shoeL.setAttribute('transform', 'translate(' + (o.fL[0] - 1).toFixed(1) + ',' + (o.fL[1] + 1.5).toFixed(1) + ') rotate(' + (o.sL || 0) + ')');
       shoeR.setAttribute('transform', 'translate(' + (o.fR[0] - 1).toFixed(1) + ',' + (o.fR[1] + 1.5).toFixed(1) + ') rotate(' + (o.sR || 0) + ')');
       torso.setAttribute('transform', 'translate(0,' + bob.toFixed(1) + ')');
-      pillow.setAttribute('transform', 'translate(0,' + bob.toFixed(1) + ')');
+      // the whole sprite mirrors when walking left; un-mirror the pillow so the bear stays on the same shoulder
+      pillow.setAttribute('transform', 'translate(0,' + bob.toFixed(1) + ')' + (H.face < 0 ? ' scale(-1,1)' : ''));
       var shY = -26.5 + bob;
       limb(armBack, -7, shY, o.hB[0], o.hB[1], o.eB || 3);
       limb(armFront, 7, shY, o.hF[0], o.hF[1], o.eF || -3);
