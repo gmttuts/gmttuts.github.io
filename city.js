@@ -36,6 +36,21 @@
   function r2h(r) { return '#' + r.map(function (v) { v = Math.round(clamp(v, 0, 255)); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
   function mix(a, b, t) { var A = h2r(a), B = h2r(b); return r2h(A.map(function (v, i) { return v + (B[i] - v) * t; })); }
   function shade(a, t) { return t < 0 ? mix(a, '#000000', -t) : mix(a, '#ffffff', t); }
+  // A flat sprite that flips around its vertical axis gets a solid edge, like a coin:
+  // copies of its silhouette are stacked behind it along the flip direction.
+  function coinEdge(parent, before, d, col, n) {
+    var g = el('g', { 'pointer-events': 'none' }, parent);
+    parent.insertBefore(g, before);
+    var outl = [], fill = [], i;
+    for (i = 0; i < n; i++) outl.push(el('path', { d: d, fill: col, stroke: C.ink, 'stroke-width': 2.6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g));
+    for (i = 0; i < n; i++) fill.push(el('path', { d: d, fill: col }, g));
+    return {
+      set: function (tf) {
+        for (var i = 0; i < n; i++) { var t = tf((i + 1) / n); outl[i].setAttribute('transform', t); fill[i].setAttribute('transform', t); }
+      },
+      show: function (on) { g.style.display = on ? '' : 'none'; }
+    };
+  }
 
   /* ---------- svg scaffolding ---------- */
   var svg = document.getElementById('city');
@@ -480,7 +495,7 @@
         box(g, px, py, 1, 0.5, 0.5, 0.55, c);
         var ic = P(px + 0.25, py + 0.25, 2.3);
         var icg = el('g', { transform: 'translate(' + ic[0] + ',' + ic[1] + ')' }, g);
-        var inner = el('g', null, icg);
+        var inner = el('g', null, icg), edge = null, starF;
         if (i === 0) {
           el('rect', { x: -13, y: -10, width: 26, height: 20, rx: 3, fill: '#fff', stroke: C.ink, 'stroke-width': 2 }, inner);
           el('path', { d: 'M-4,-6 L7,0 L-4,6 Z', fill: C.orange, stroke: C.ink, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, inner);
@@ -489,12 +504,20 @@
           var bars = [0, 1, 2].map(function (k) { return el('rect', { x: -5, y: -9 + k * 7, height: 4, fill: [C.green, C.pink, C.sky][k] }, inner); });
           anim(function (t) { bars.forEach(function (r, k) { r.setAttribute('width', (4 + 6 * (0.5 + 0.5 * Math.sin(t * 3 + k))).toFixed(1)); }); });
         } else {
-          el('path', { d: 'M0,-14 L4,-4 L14,-4 L6,3 L9,13 L0,7 L-9,13 L-6,3 L-14,-4 L-4,-4 Z', fill: C.yellow, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, inner);
+          var STAR = 'M0,-14 L4,-4 L14,-4 L6,3 L9,13 L0,7 L-9,13 L-6,3 L-14,-4 L-4,-4 Z';
+          var edge = coinEdge(icg, inner, STAR, shade(C.yellow, -0.32), 8);
+          var starF = el('path', { d: STAR, fill: C.yellow, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, inner);
         }
         anim(function (t) {
           var by = Math.sin(t * 2.2 + i * 1.3) * 4 + quake(px, py) * 2.2;
-          var sx = i === 2 ? Math.cos(t * 2.5) : 1;
+          var sx = i === 2 ? Math.cos(t * 4.2) : 1;
+          if (i === 2 && Math.abs(sx) < 0.14) sx = sx < 0 ? -0.14 : 0.14; // never paper-thin: the edge needs a face to stack
           inner.setAttribute('transform', 'translate(0,' + by.toFixed(1) + ') scale(' + sx.toFixed(3) + ',1)' + (i === 0 ? ' rotate(' + (Math.sin(t * 1.7) * 8).toFixed(1) + ')' : ''));
+          if (edge) {
+            var sn = Math.sin(t * 4.2);
+            edge.set(function (k) { return 'translate(' + (sn * 3.2 * k).toFixed(2) + ',' + by.toFixed(1) + ') scale(' + sx.toFixed(3) + ',1)'; });
+            starF.setAttribute('fill', sx < 0 ? shade(C.yellow, -0.1) : C.yellow);
+          }
         });
       });
       pad(g, 13.25, 9.62, 1);
@@ -541,6 +564,7 @@
 
   /* ---------- mini arcade cabinet next to the house ---------- */
   var ARCADE_HIT = null;
+  var ARCADE_TAG = null;
   function arcadeCabinet(g, x, y, z) {
     var w = 0.62, d = 0.5, h = 1.3, cab = el('g', { 'data-arcade': 1 }, g);
     box(cab, x, y, z, w, d, h, '#3b3360', { top: '#5a5190', left: grad('#4a4178', 'l'), right: grad('#2e2850', 'r') });
@@ -574,9 +598,18 @@
     var tp = P(x + w / 2, y + d / 2, z + h + 0.55);
     var tg = el('g', { class: 'tag', 'data-arcade': 1, transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, L.tags);
     var inner = el('g', null, tg);
-    el('rect', { x: -38, y: -11, width: 80, height: 26, fill: C.ink }, inner);
-    el('rect', { x: -42, y: -15, width: 80, height: 26, fill: C.yellow, stroke: C.ink, 'stroke-width': 2.5 }, inner);
-    el('text', { x: -2, y: 5, 'font-size': 22, 'text-anchor': 'middle', fill: C.ink }, inner).textContent = '▶ ARCADE';
+    var ash = el('rect', { y: -11, height: 26, fill: C.ink }, inner);
+    var arc = el('rect', { y: -15, height: 26, fill: C.yellow, stroke: C.ink, 'stroke-width': 2.5 }, inner);
+    var atx = el('text', { y: 5, 'font-size': 22, 'text-anchor': 'middle', fill: C.ink }, inner);
+    atx.textContent = '▶ ARCADE';
+    ARCADE_TAG = function () {
+      var tw = 75;
+      try { tw = atx.getBBox().width || tw; } catch (e) {}
+      var Wd = Math.ceil(tw + 22), x0 = -Wd / 2;
+      arc.setAttribute('x', x0); arc.setAttribute('width', Wd);
+      ash.setAttribute('x', x0 + 4); ash.setAttribute('width', Wd);
+      atx.setAttribute('x', 0);
+    };
     anim(function (t) { inner.setAttribute('transform', 'translate(0,' + (Math.sin(t * 2.6) * 2.5).toFixed(1) + ') scale(' + clamp(0.8 / (view.s || 1), 0.8, 2.1).toFixed(3) + ')'); });
   }
 
@@ -724,15 +757,17 @@
     var vi = document.documentElement.getAttribute('data-lang') === 'vi';
     TAGS.forEach(function (t) {
       var txt = vi ? t.tvi : t.ten;
-      var tw = 60;
-      try { tw = txt.getComputedTextLength() || 60; } catch (e) {}
-      var W = 26 + 10 + tw + 10, x0 = -W / 2;
+      var tw = 0;
+      try { tw = txt.getBBox().width; } catch (e) {}
+      if (!tw) tw = txt.textContent.length * 10.5;
+      var W = Math.ceil(26 + 10 + tw + 14), x0 = -W / 2;
       t.rect.setAttribute('x', x0); t.rect.setAttribute('width', W);
       t.sh.setAttribute('x', x0 + 4); t.sh.setAttribute('width', W);
       t.num.setAttribute('x', x0);
       t.nt.setAttribute('x', x0 + 13);
       t.ten.setAttribute('x', x0 + 36); t.tvi.setAttribute('x', x0 + 36);
     });
+    if (ARCADE_TAG) ARCADE_TAG();
   }
   // the cabinet's hit area must sit above the Home zone's, or clicks fall through to Home
   if (ARCADE_HIT) L.hits.appendChild(ARCADE_HIT);
@@ -911,6 +946,50 @@
     el('path', { d: curls(0, -0.6, 12.8, 13, 0, Math.PI * 2, 13) + ' Z', fill: C.navy, stroke: C.ink, 'stroke-width': 1.4, 'stroke-linejoin': 'round' }, back);
     el('path', { d: 'M-5,-3 q2,-2.5 4,0 M1.5,-5 q2,-2.5 4,0 M-3,4 q2,-2.5 4,0 M3.5,3 q1.6,-2 3.2,0', stroke: '#45507a', 'stroke-width': 1.3, fill: 'none', 'stroke-linecap': 'round' }, back);
 
+    // ---- character 2: astronaut riding the bear rocket (side view, faces right) ----
+    var ship = el('g', { display: 'none' }, root);
+    var flame = el('path', { d: 'M-27,-21 Q-42,-15.5 -27,-10 Z', fill: C.orange, stroke: C.ink, 'stroke-width': 1.4, 'stroke-linejoin': 'round' }, ship);
+    var flameIn = el('path', { d: 'M-27,-18.5 Q-35,-15.5 -27,-12.5 Z', fill: C.yellow }, ship);
+    el('rect', { x: -28, y: -22, width: 10, height: 13, rx: 2.5, fill: '#d9dde8', stroke: C.ink, 'stroke-width': 1.6 }, ship);
+    el('rect', { x: -24.5, y: -21.2, width: 2.4, height: 11.4, fill: C.red }, ship);
+    el('path', { d: 'M-11,-9 L-17,-1.5 L-4,-5 Z', fill: C.red, stroke: C.ink, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, ship);
+    el('rect', { x: -21, y: -25, width: 36, height: 17, rx: 8.5, fill: C.brown, stroke: C.ink, 'stroke-width': 1.7 }, ship);
+    el('path', { d: 'M-15,-21.5 H7', stroke: '#c0714f', 'stroke-width': 2.6, 'stroke-linecap': 'round' }, ship);
+    // astronaut: backpack, leg astride, suit, helmet with the curly hair inside the visor
+    el('rect', { x: -16, y: -37, width: 6, height: 12, rx: 2, fill: '#d9dde8', stroke: C.ink, 'stroke-width': 1.4 }, ship);
+    el('path', { d: 'M-6,-24 Q2,-24 3,-18 L3,-12', fill: 'none', stroke: C.ink, 'stroke-width': 8, 'stroke-linecap': 'round' }, ship);
+    el('path', { d: 'M-6,-24 Q2,-24 3,-18 L3,-12', fill: 'none', stroke: '#fff', 'stroke-width': 5.2, 'stroke-linecap': 'round' }, ship);
+    el('rect', { x: 0, y: -12.5, width: 8, height: 5, rx: 2, fill: C.cuff, stroke: C.ink, 'stroke-width': 1.3 }, ship);
+    el('rect', { x: -11.5, y: -37, width: 12, height: 15, rx: 4, fill: '#fff', stroke: C.ink, 'stroke-width': 1.5 }, ship);
+    el('rect', { x: -8, y: -32.5, width: 5, height: 4, rx: 1, fill: C.sky, stroke: C.ink, 'stroke-width': 1 }, ship);
+    el('path', { d: 'M-11.5,-26 H0.5', stroke: C.orange, 'stroke-width': 2 }, ship);
+    var helm = el('g', null, ship);
+    el('path', { d: 'M-9,-52 L-11,-57', stroke: C.ink, 'stroke-width': 1.6, 'stroke-linecap': 'round' }, helm);
+    el('circle', { cx: -11, cy: -57.5, r: 2, fill: C.yellow, stroke: C.ink, 'stroke-width': 1.2 }, helm);
+    el('circle', { cx: -5, cy: -43, r: 10.5, fill: '#fff', stroke: C.ink, 'stroke-width': 1.7 }, helm);
+    el('ellipse', { cx: -0.5, cy: -42.5, rx: 6.8, ry: 6, fill: C.skin, stroke: C.ink, 'stroke-width': 1.4 }, helm);
+    el('path', { d: 'M-7,-44 Q-6.5,-49 -1,-48.6 Q4,-48.6 6,-45 Q3,-46.4 1,-44.6 Q-1.5,-46.6 -4,-44.4 Q-5.4,-45.8 -7,-44 Z', fill: C.navy }, helm);
+    var shipEye = el('ellipse', { cx: 2.4, cy: -42, rx: 1.1, ry: 1.6, fill: C.ink }, helm);
+    el('circle', { cx: 3.6, cy: -39, r: 1.4, fill: '#ff8f8f', opacity: 0.8 }, helm);
+    el('path', { d: 'M-1.5,-38.6 Q0.5,-37 2,-38.4', fill: 'none', stroke: C.ink, 'stroke-width': 1, 'stroke-linecap': 'round' }, helm);
+    el('ellipse', { cx: -0.5, cy: -42.5, rx: 6.8, ry: 6, fill: 'rgba(61,184,255,.22)' }, helm);
+    el('path', { d: 'M-5,-46 Q-3.5,-48 -1,-48.2', fill: 'none', stroke: '#fff', 'stroke-width': 1.5, 'stroke-linecap': 'round' }, helm);
+    // the bear's head is the nose of the rocket
+    [[14.5, -31], [22, -30]].forEach(function (e) {
+      el('circle', { cx: e[0], cy: e[1], r: 3.2, fill: C.brown, stroke: C.ink, 'stroke-width': 1.4 }, ship);
+      el('circle', { cx: e[0], cy: e[1], r: 1.3, fill: '#5e2f1f' }, ship);
+    });
+    el('circle', { cx: 18.5, cy: -21, r: 9.5, fill: C.brown, stroke: C.ink, 'stroke-width': 1.7 }, ship);
+    el('ellipse', { cx: 24.5, cy: -18, rx: 4, ry: 3.2, fill: '#fff7ee', stroke: C.ink, 'stroke-width': 0.9 }, ship);
+    el('ellipse', { cx: 27, cy: -19.4, rx: 1.4, ry: 1, fill: C.ink }, ship);
+    el('path', { d: 'M24,-16.6 q1.4,1.2 2.8,0', fill: 'none', stroke: C.ink, 'stroke-width': 0.8, 'stroke-linecap': 'round' }, ship);
+    var bearEye = el('ellipse', { cx: 20, cy: -23, rx: 1, ry: 1.3, fill: C.ink }, ship);
+    el('circle', { cx: 15, cy: -18, r: 1.6, fill: '#ff8f8f', opacity: 0.6 }, ship);
+    // arm reaching for the bear's ears
+    el('path', { d: 'M-4,-33 Q4,-35 10,-30', fill: 'none', stroke: C.ink, 'stroke-width': 6.4, 'stroke-linecap': 'round' }, ship);
+    el('path', { d: 'M-4,-33 Q4,-35 10,-30', fill: 'none', stroke: '#fff', 'stroke-width': 3.8, 'stroke-linecap': 'round' }, ship);
+    el('circle', { cx: 11, cy: -29.5, r: 2.8, fill: C.cuff, stroke: C.ink, 'stroke-width': 1.3 }, ship);
+
     function limb(h, x1, y1, x2, y2, bend) {
       var mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, Ln = Math.hypot(dx, dy) || 1;
       var cx = mx + (-dy / Ln) * bend, cy = my + (dx / Ln) * bend;
@@ -929,7 +1008,8 @@
       mode: 'idle', queue: [], seg: null, segT: 0, phase: 0,
       face: 1, isBack: false, stop: 0, target: null,
       sq: 0, sqT: 9, blinkT: 2, act: null, actT: 0, idleT: 0,
-      scale: 0.82, hang: false, arriveCb: null, rot: 0
+      scale: 0.82, hang: false, arriveCb: null, rot: 0,
+      char: 'walk', hz: null
     };
     function squash(a) { H.sq = a; H.sqT = 0; }
 
@@ -973,12 +1053,46 @@
       root.setAttribute('transform', tr);
     }
 
+    function smooth(k) { return k * k * (3 - 2 * k); }
+    // character 2 flies straight to a stop: lift off, cruise high, settle into a hover
+    function flyUpdate(dt, t, blink) {
+      var hov = 0.38 + Math.sin(t * 2.6) * 0.07, tilt = Math.sin(t * 1.3) * 3, thrust = 0.3;
+      if (H.mode === 'travel' && H.seg) {
+        var s = H.seg;
+        H.segT += dt;
+        var u = clamp(H.segT / s.dur, 0, 1);
+        var e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+        H.x = lerp(s.a[0], s.b[0], e); H.y = lerp(s.a[1], s.b[1], e); H.z = lerp(s.a[2], s.b[2], e);
+        var land = smooth(clamp((u - 0.82) / 0.18, 0, 1));
+        H.hz = lerp(s.a[2] + s.h0, s.b[2] + lerp(s.h0, hov, land), e) + Math.pow(Math.sin(Math.PI * u), 0.7) * s.cz;
+        var sa = P(s.a[0], s.a[1], 0), sb = P(s.b[0], s.b[1], 0);
+        if (Math.abs(sb[0] - sa[0]) > 0.5) H.face = sb[0] < sa[0] ? -1 : 1;
+        tilt = 13 * Math.sin(Math.PI * u) * (u < 0.5 ? 1 : 0.6);
+        thrust = 1;
+        if (u >= 1) { SFX.land(); impact(s.b[0], s.b[1], s.b[2], 0.25); nextSeg(); H.hz = H.z + hov; }
+      } else H.hz = H.z + hov;
+      var sp = P(H.x, H.y, H.hz);
+      root.setAttribute('transform', 'translate(' + sp[0].toFixed(1) + ',' + sp[1].toFixed(1) + ') scale(' + (H.face * H.scale) + ',' + H.scale + ') rotate(' + tilt.toFixed(2) + ',0,-22)');
+      var fl = (thrust > 0.5 ? 13 : 6) + Math.random() * (thrust > 0.5 ? 7 : 3);
+      flame.setAttribute('d', 'M-27,-21 Q' + (-27 - fl).toFixed(1) + ',-15.5 -27,-10 Z');
+      flameIn.setAttribute('d', 'M-27,-18.5 Q' + (-27 - fl * 0.55).toFixed(1) + ',-15.5 -27,-12.5 Z');
+      var bs = blink ? 0.15 : 1;
+      shipEye.setAttribute('ry', (1.6 * bs).toFixed(2)); bearEye.setAttribute('ry', (1.3 * bs).toFixed(2));
+      var gs = P(H.x, H.y, H.z), hgt = H.hz - H.z;
+      shadow.setAttribute('cx', gs[0].toFixed(1)); shadow.setAttribute('cy', gs[1].toFixed(1));
+      shadow.setAttribute('rx', Math.max(5, 15 - hgt * 2.2).toFixed(1));
+      shadow.setAttribute('opacity', Math.max(0.25, 1 - hgt * 0.22).toFixed(2));
+      shadow.style.display = '';
+      H.sp = sp;
+    }
+
     H.update = function (dt, t) {
       H.sqT += dt;
       H.blinkT -= dt;
       var blink = false;
       if (H.blinkT < 0) { blink = true; if (H.blinkT < -0.12) H.blinkT = 1.5 + Math.random() * 3; }
       var gz = H.z, sp, o;
+      if (H.char === 'astro') { flyUpdate(dt, t, blink); return; }
 
       if (H.mode === 'travel' && H.seg) {
         var s = H.seg;
@@ -1136,6 +1250,13 @@
 
     H.travel = function (to, cb) {
       if (to === H.stop && H.mode === 'idle') { H.target = to; H.act = 'hop'; H.actT = 0.4; if (cb) setTimeout(cb, 250); return; }
+      if (H.char === 'astro') {
+        var nd = NODES[STOP_NODE[to]].p, dist = Math.hypot(nd[0] - H.x, nd[1] - H.y);
+        H.seg = { t: 'fly', a: [H.x, H.y, H.z], b: [nd[0], nd[1], nd[2]], h0: (H.hz == null ? H.z : H.hz) - H.z, cz: 1.4 + dist * 0.12, dur: RM ? 0.3 : 0.8 + dist * 0.12 };
+        H.queue = []; H.segT = 0; H.target = to; H.arriveCb = cb; H.mode = 'travel'; H.act = null;
+        SFX.zip();
+        return;
+      }
       // from the node we're standing on (or the end of our current segment)
       var startNode;
       if (H.mode === 'travel' && H.seg) {
@@ -1159,7 +1280,18 @@
       if (H.mode === 'travel' && H.seg) { H.queue = path.list; }
       else { H.queue = path.list; H.mode = 'travel'; H.act = null; nextSeg(); }
     };
+    H.setChar = function (c) {
+      if (c === H.char) return;
+      // finish any trip on the spot so the swap starts from a stop
+      if (H.mode === 'travel') { H.queue = []; H.seg = null; ROPE.hold = null; nextSeg(); }
+      H.char = c;
+      body.setAttribute('display', c === 'astro' ? 'none' : '');
+      ship.setAttribute('display', c === 'astro' ? '' : 'none');
+      H.hz = c === 'astro' ? H.z : null;
+      H.sq = 0;
+    };
     H.root = root;
+    H.ship = ship; H.walker = body;
     return H;
   })();
 
@@ -1198,17 +1330,21 @@
     var g = el('g', { 'data-cre': i }, L.actors);
     var sh = el('ellipse', { rx: 11, ry: 4, fill: 'rgba(22,22,29,.18)' }, g);
     var body = el('g', null, g);
+    c.edge = coinEdge(g, body, SHAPES[c.type], shade(c.col, -0.3), 12);
     var clipId = 'clip' + i;
     var cp = el('clipPath', { id: clipId }, defs);
     el('path', { d: SHAPES[c.type] }, cp);
     el('path', { d: SHAPES[c.type], fill: c.col }, body);
     el('rect', { x: 1, y: -30, width: 16, height: 32, fill: shade(c.col, -0.18), 'clip-path': 'url(#' + clipId + ')' }, body);
     el('path', { d: SHAPES[c.type], fill: 'none', stroke: C.ink, 'stroke-width': 2.6, 'stroke-linejoin': 'round' }, body);
-    el('path', { d: 'M-6,-21 l2.5,-2.5', stroke: '#fff', 'stroke-width': 2.4, 'stroke-linecap': 'round', opacity: 0.9 }, body);
-    var eyes = el('g', null, body);
+    // face + highlight sit where each silhouette is widest, clear of the outline
+    var FO = { ease: [0, -5, -9, -23], easeIn: [4.5, 0, -1.5, -21], easeOut: [-4.5, 0, -3, -21] }[c.type] || [0, 0, -6, -21];
+    el('path', { d: 'M' + FO[2] + ',' + FO[3] + ' l2.5,-2.5', stroke: '#fff', 'stroke-width': 2.4, 'stroke-linecap': 'round', opacity: 0.9 }, body);
+    var faceG = el('g', { transform: 'translate(' + FO[0] + ',' + FO[1] + ')' }, body);
+    var eyes = el('g', null, faceG);
     el('ellipse', { cx: -3.8, cy: -15, rx: 1.7, ry: 2.1, fill: C.ink }, eyes);
     el('ellipse', { cx: 3.8, cy: -15, rx: 1.7, ry: 2.1, fill: C.ink }, eyes);
-    var mouth = el('path', { d: 'M-2.6,-10.5 Q0,-7.8 2.6,-10.5', fill: 'none', stroke: C.ink, 'stroke-width': 1.6, 'stroke-linecap': 'round' }, body);
+    var mouth = el('path', { d: 'M-2.6,-10.5 Q0,-7.8 2.6,-10.5', fill: 'none', stroke: C.ink, 'stroke-width': 1.6, 'stroke-linecap': 'round' }, faceG);
     var zz = el('text', { x: 10, y: -30, 'font-size': 10, 'font-weight': 700, fill: C.ink, display: 'none' }, body);
     zz.textContent = 'z';
     c.g = g; c.sh = sh; c.body = body; c.eyes = eyes; c.mouth = mouth; c.zz = zz;
@@ -1267,6 +1403,7 @@
         if (g0 > 0.85) { sy *= 0.85; sx *= 1.12; }
       } else if (c.st === 'spin') {
         sx = Math.cos(u * Math.PI * 2); hop = Math.sin(u * Math.PI) * 0.22;
+        if (Math.abs(sx) < 0.14) sx = sx < 0 ? -0.14 : 0.14;
       } else if (c.st === 'stretch') {
         var sp = Math.sin(u * Math.PI * 2);
         sy *= 1 + sp * 0.22; sx *= 1 - sp * 0.14;
@@ -1299,7 +1436,15 @@
       var gp = P(x, y, c.z), p = P(x, y, c.z + hop);
       c.sh.setAttribute('cx', gp[0].toFixed(1)); c.sh.setAttribute('cy', gp[1].toFixed(1));
       c.sh.setAttribute('rx', Math.max(4, 11 * c.sc - hop * 6).toFixed(1));
-      c.body.setAttribute('transform', 'translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ') scale(' + (c.face * c.sc * sx).toFixed(3) + ',' + (c.sc * sy).toFixed(3) + ') rotate(' + tilt.toFixed(1) + ',0,-13)');
+      var btf = ' scale(' + (c.face * c.sc * sx).toFixed(3) + ',' + (c.sc * sy).toFixed(3) + ') rotate(' + tilt.toFixed(1) + ',0,-13)';
+      c.body.setAttribute('transform', 'translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')' + btf);
+      // spinning shows the creature's thickness
+      var spinOn = c.st === 'spin';
+      c.edge.show(spinOn);
+      if (spinOn) {
+        var dep = Math.sin(u * Math.PI * 2) * 4.5 * c.sc * c.face;
+        c.edge.set(function (k) { return 'translate(' + (p[0] + dep * k).toFixed(1) + ',' + p[1].toFixed(1) + ')' + btf; });
+      }
       c.blink -= dt;
       var bl = eyesShut || c.blink < 0;
       if (c.blink < -0.12) c.blink = 1.2 + Math.random() * 3.8;
@@ -1436,11 +1581,12 @@
       var d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       var ns = clamp(pinch.s * d / pinch.d, fitS * 0.85, Math.max(fitS * 5, 2.6)), r = ns / pinch.s;
       goal.s = ns;
+      userMoved = true;
+      // while following, pinch only zooms; the camera stays on the hero
+      if (follow) { view.s = goal.s; followTarget(); view.tx = goal.tx; view.ty = goal.ty; return; }
       goal.tx = mx - (pinch.mx - pinch.tx) * r;
       goal.ty = my - (pinch.my - pinch.ty) * r;
       view.s = goal.s; view.tx = goal.tx; view.ty = goal.ty;
-      userMoved = true;
-      if (follow) setFollow(false);
     } else if (drag) {
       var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (!drag.moved && Math.hypot(dx, dy) > 6) { drag.moved = true; svg.classList.add('panning'); if (follow) setFollow(false); }
@@ -1609,6 +1755,11 @@
   document.addEventListener('keydown', function (e) {
     if (e.target.closest && e.target.closest('input,textarea')) return;
     if (document.body.classList.contains('arcade-open')) return;
+    if (document.body.classList.contains('charsel-open')) {
+      if (e.key === 'Escape') closeCharsel();
+      else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var cs = charsel.querySelectorAll('.cs-card'); cs[e.key === 'ArrowRight' ? 1 : 0].focus(); e.preventDefault(); }
+      return;
+    }
     if (e.key === 'Escape') closePanel();
     else if (e.key === 'ArrowRight' || e.key === 'n') go(state.here == null ? 0 : (state.here + 1) % ZONES.length);
     else if (e.key === 'ArrowLeft' || e.key === 'p') go(state.here == null ? 0 : (state.here - 1 + ZONES.length) % ZONES.length);
@@ -1632,6 +1783,50 @@
   function soundUI() { bs.setAttribute('aria-pressed', SFX.on ? 'true' : 'false'); bs.querySelector('.w').style.display = SFX.on ? '' : 'none'; }
   bs.addEventListener('click', function () { SFX.set(!SFX.on); soundUI(); SFX.click(); });
   soundUI();
+
+  /* ================= CHARACTER SELECT ================= */
+  var charsel = document.getElementById('charsel');
+  function savedChar() { try { return localStorage.getItem('city-char'); } catch (e) { return null; } }
+  // previews are live copies of the two sprites
+  function fillPreviews() {
+    [['walk', hero.walker, '-30 -64 60 70'], ['astro', hero.ship, '-46 -64 92 70']].forEach(function (a) {
+      var host = charsel.querySelector('[data-pv="' + a[0] + '"]');
+      host.innerHTML = '';
+      var sv = el('svg', { viewBox: a[2], 'aria-hidden': 'true' }, host);
+      var g = el('g', null, sv);
+      var c = a[1].cloneNode(true);
+      c.removeAttribute('display');
+      g.appendChild(c);
+    });
+  }
+  function openCharsel() {
+    closePanel(true);
+    fillPreviews();
+    charsel.querySelectorAll('.cs-card').forEach(function (b) { b.classList.toggle('current', b.getAttribute('data-char') === hero.char); });
+    charsel.hidden = false;
+    charsel.classList.remove('pop'); void charsel.offsetWidth; charsel.classList.add('pop');
+    document.body.classList.add('charsel-open');
+    var cur = charsel.querySelector('.cs-card.current') || charsel.querySelector('.cs-card');
+    try { cur.focus({ preventScroll: true }); } catch (e) {}
+    SFX.open();
+  }
+  function closeCharsel() {
+    if (charsel.hidden) return;
+    charsel.hidden = true;
+    document.body.classList.remove('charsel-open');
+    try { if (!savedChar()) localStorage.setItem('city-char', hero.char); } catch (e) {}
+  }
+  function pickChar(c) {
+    var changed = c !== hero.char;
+    hero.setChar(c);
+    try { localStorage.setItem('city-char', c); } catch (e) {}
+    closeCharsel();
+    if (changed) { SFX.pop(); impact(hero.x, hero.y, hero.z, 0.3); }
+    else SFX.click();
+  }
+  charsel.querySelectorAll('.cs-card').forEach(function (b) { b.addEventListener('click', function () { pickChar(b.getAttribute('data-char')); }); });
+  document.getElementById('cs-close').addEventListener('click', function () { SFX.click(); closeCharsel(); });
+  document.getElementById('b-char').addEventListener('click', function () { SFX.click(); openCharsel(); });
 
   /* ================= LOOP ================= */
   var last = performance.now(), simT = 0, paused = false;
@@ -1675,7 +1870,18 @@
   function init() {
     layoutTags();
     computeFit(); fitGoal();
+    var sc = savedChar();
+    if (sc === 'astro' || sc === 'walk') hero.setChar(sc);
+    hero.update(0, 0);
+    // phones start close up on the hero; zooming keeps following, dragging lets go
+    if (W < 760) {
+      follow = true;
+      document.getElementById('z-follow').setAttribute('aria-pressed', 'true');
+      goal.s = Math.min(Math.max(fitS * 2.4, 1.1), 2.2);
+      followTarget();
+    }
     view.s = goal.s; view.tx = goal.tx; view.ty = goal.ty;
+    if (!sc) openCharsel();
     refreshChips();
     drawAnts(null, null);
     requestAnimationFrame(frame);
@@ -1685,8 +1891,14 @@
     computeFit();
     if (wasFit && !follow) fitGoal(); else clampGoal();
   });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layoutTags(); });
+  // the label boxes are measured from the text, so measure again whenever a font file lands
+  if (document.fonts) {
+    if (document.fonts.ready) document.fonts.ready.then(layoutTags);
+    if (document.fonts.load) document.fonts.load('24px VT323', 'Post Office Bưu điện ▶ ARCADE').then(layoutTags, function () {});
+    if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', layoutTags);
+  }
+  setTimeout(layoutTags, 1200); setTimeout(layoutTags, 3500);
   init();
 
-  window.GMTCity = { sfx: SFX, openArcade: openArcade, cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt };
+  window.GMTCity = { sfx: SFX, openArcade: openArcade, cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt, openCharsel: openCharsel, pickChar: pickChar, follow: function () { return follow; } };
 })();

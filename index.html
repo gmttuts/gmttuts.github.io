@@ -238,6 +238,45 @@ form.f .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .ar-pad .mid button{padding:0 6px;font-size:16px}
 }
 body.arcade-open .zoom,body.arcade-open .route,body.arcade-open .hint{visibility:hidden}
+
+/* ---------- character select ---------- */
+.pxwin.charsel{inset:0;margin:auto;width:min(620px,calc(100vw - 40px));height:fit-content;max-height:calc(100dvh - 32px);z-index:8}
+.cs-body{padding:16px 18px 18px;overflow:auto}
+.cs-body h2{font:400 40px/1 var(--hd);margin:0 0 2px}
+.cs-body>p{margin:0 0 14px;font:400 20px/1.1 var(--hd);color:#555}
+.cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cs-card{appearance:none;border:3px solid var(--ink);background:#fff;color:var(--ink);padding:0;cursor:pointer;text-align:left;display:flex;flex-direction:column;box-shadow:4px 4px 0 var(--ink);outline:3px solid transparent;outline-offset:2px;transition:transform .12s,box-shadow .12s;font:inherit}
+.cs-card:hover,.cs-card:focus-visible{transform:translate(-3px,-5px);box-shadow:7px 9px 0 var(--ink);outline-color:var(--yellow)}
+.cs-pv{display:block;aspect-ratio:16/10;border-bottom:3px solid var(--ink);background:var(--c);background-image:linear-gradient(rgba(22,22,29,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(22,22,29,.08) 1px,transparent 1px);background-size:16px 16px;position:relative}
+.cs-pv svg{position:absolute;inset:6% 0 0;width:100%;height:94%;overflow:visible}
+.cs-pv svg>g{animation:csbob 1.2s ease-in-out infinite}
+.cs-card[data-char=astro] .cs-pv svg>g{animation-duration:.9s}
+@keyframes csbob{50%{transform:translateY(-3px)}}
+.cs-txt{display:block;padding:10px 12px 12px}
+.cs-name{display:block;font:400 28px/1 var(--hd)}
+.cs-desc{display:block;font-size:13px;line-height:1.4;margin:6px 0 10px;min-height:3.6em}
+.cs-spd{display:flex;align-items:center;gap:8px;font:400 19px/1 var(--hd)}
+.cs-spd i{display:flex;gap:3px}
+.cs-spd i b{width:14px;height:12px;border:2px solid var(--ink);background:#fff}
+.cs-spd i b.on{background:var(--orange)}
+.cs-cur{display:inline-block;margin-top:10px;font:400 18px/1 var(--hd);background:var(--ink);color:var(--cream);padding:3px 8px;visibility:hidden}
+.cs-card.current .cs-cur{visibility:visible}
+.cs-card.current{outline-color:var(--green)}
+body.charsel-open .zoom,body.charsel-open .route,body.charsel-open .hint{visibility:hidden}
+#b-char .cs-lbl{font:inherit}
+@media (max-width:760px){
+  .pxwin.charsel{width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}
+  .cs-body{padding:12px}
+  .cs-body h2{font-size:32px}
+  .cs-body>p{font-size:17px;margin-bottom:10px}
+  .cs-grid{gap:10px}
+  .cs-name{font-size:22px}
+  .cs-desc{font-size:12px;min-height:5.6em}
+  .cs-txt{padding:8px}
+  .cs-spd{font-size:16px;gap:5px}
+  .cs-spd i b{width:9px;height:10px}
+  #b-char .cs-lbl{display:none}
+}
 .vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 @media (max-width:760px){
@@ -288,11 +327,12 @@ body.arcade-open .zoom,body.arcade-open .route,body.arcade-open .hint{visibility
     <span><b>GMT CITY</b><small><span lang="en">Building products for designers</span><span lang="vi">Xây sản phẩm cho designer</span></small></span>
   </a>
   <span class="sp"></span>
+  <button class="pbtn" type="button" id="b-char" aria-label="Select character"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.5" r="3.2" fill="currentColor"/><path fill="currentColor" d="M2 15.5q0-6.5 6-6.5t6 6.5z"/></svg><span class="cs-lbl"><span lang="en">CHARACTER</span><span lang="vi">NHÂN VẬT</span></span></button>
   <button class="pbtn" type="button" id="b-sound" aria-pressed="true" aria-label="Sound"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 6h3l4-3v10l-4-3H2z"/><path class="w" fill="none" stroke="currentColor" stroke-width="1.6" d="M11 5.5q1.5 2.5 0 5M12.8 3.8q3 4.2 0 8.4"/></svg></button>
   <button class="pbtn" type="button" id="b-lang"><span lang="en">VI</span><span lang="vi">EN</span></button>
 </header>
 
-<div class="hint" id="hint"><span lang="en">Click a place to walk there · start at ▶ 01</span><span lang="vi">Bấm vào một khu để đi tới · bắt đầu từ ▶ 01</span></div>
+<div class="hint" id="hint"><span lang="en">Click a place to go there · start at ▶ 01</span><span lang="vi">Bấm vào một khu để tới đó · bắt đầu từ ▶ 01</span></div>
 
 <div class="zoom" role="group" aria-label="Zoom">
   <button class="pbtn" type="button" id="z-in" aria-label="Zoom in">+</button>
@@ -304,6 +344,34 @@ body.arcade-open .zoom,body.arcade-open .route,body.arcade-open .hint{visibility
 <nav class="route" aria-label="Route">
   <ol id="route"></ol>
 </nav>
+
+<section class="pxwin charsel" id="charsel" role="dialog" aria-labelledby="cs-title" hidden>
+  <div class="pxbar"><span>SELECT_CHARACTER.EXE</span><span class="stripes" aria-hidden="true"></span><button type="button" id="cs-close" aria-label="Close">✕</button></div>
+  <div class="cs-body">
+    <h2 id="cs-title"><span lang="en">Select character</span><span lang="vi">Chọn nhân vật</span></h2>
+    <p><span lang="en">Pick who explores GMT City. You can switch any time.</span><span lang="vi">Chọn người dạo GMT City. Đổi lại lúc nào cũng được.</span></p>
+    <div class="cs-grid">
+      <button type="button" class="cs-card" data-char="walk" style="--c:#dcf7ea">
+        <span class="cs-pv" data-pv="walk"></span>
+        <span class="cs-txt">
+          <b class="cs-name"><span lang="en">01 · Explorer</span><span lang="vi">01 · Nhà thám hiểm</span></b>
+          <span class="cs-desc"><span lang="en">Walks the streets, swings on the rope, bounces on springs and hops over G·M·T.</span><span lang="vi">Đi bộ khắp phố, đu dây, bật lò xo và nhảy qua chữ G·M·T.</span></span>
+          <span class="cs-spd"><span lang="en">SPEED</span><span lang="vi">TỐC ĐỘ</span><i><b class="on"></b><b class="on"></b><b></b><b></b><b></b></i></span>
+          <span class="cs-cur"><span lang="en">▶ PLAYING</span><span lang="vi">▶ ĐANG CHƠI</span></span>
+        </span>
+      </button>
+      <button type="button" class="cs-card" data-char="astro" style="--c:#dbeaff">
+        <span class="cs-pv" data-pv="astro"></span>
+        <span class="cs-txt">
+          <b class="cs-name"><span lang="en">02 · Astronaut</span><span lang="vi">02 · Phi hành gia</span></b>
+          <span class="cs-desc"><span lang="en">Rides the bear rocket and flies straight to every place, much faster.</span><span lang="vi">Cưỡi tàu tên lửa gấu, bay thẳng tới mọi nơi, nhanh hơn nhiều.</span></span>
+          <span class="cs-spd"><span lang="en">SPEED</span><span lang="vi">TỐC ĐỘ</span><i><b class="on"></b><b class="on"></b><b class="on"></b><b class="on"></b><b class="on"></b></i></span>
+          <span class="cs-cur"><span lang="en">▶ PLAYING</span><span lang="vi">▶ ĐANG CHƠI</span></span>
+        </span>
+      </button>
+    </div>
+  </div>
+</section>
 
 <section class="pxwin" id="panel" role="dialog" aria-labelledby="px-title" hidden>
   <div class="pxbar"><span id="px-file">ABOUT.TXT</span><span class="stripes" aria-hidden="true"></span><button type="button" id="px-close" aria-label="Close">✕</button></div>
@@ -447,7 +515,7 @@ body.arcade-open .zoom,body.arcade-open .route,body.arcade-open .hint{visibility
   <div class="ar-keys" id="ar-keys"></div>
 </section>
 
-<script src="city.js"></script>
+<script src="city.js?v=10"></script>
 <script src="games/minesweeper.js"></script>
 <script src="games/solitaire.js"></script>
 <script src="arcade.js"></script>
