@@ -212,10 +212,19 @@ form.f .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ab button.on{transform:translate(2px,2px)}.ab [data-b=b].on{transform:translate(2px,16px)}
 .ar-keys{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;padding:10px 12px 12px;border-top:3px solid var(--ink);background:#13111f;font:400 19px/1.2 var(--hd);color:var(--lilac)}
 .ar-keys kbd{font:400 17px/1 var(--px);background:var(--cream);color:var(--ink);border:2px solid var(--ink);box-shadow:0 2px 0 #000;padding:2px 6px;margin-right:4px}
+.ar-dom{background:#c0c0c0;border:3px solid var(--ink);overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:10px;color:#000}
+.ar-dom:has(.sol-root){background:#1f7a46;padding:0;display:block}
+/* the Windows classics shipped with Tahoma/Segoe UI, which break Vietnamese: use our Vietnamese-safe fonts */
+.ar-dom .ms-root,.ar-dom .sol-root{font-family:"Space Mono",ui-monospace,monospace!important}
+.ar-dom .ms-btn,.ar-dom .sol-btn{font-family:"VT323",ui-monospace,monospace!important;font-size:17px!important}
 @media (pointer:coarse),(max-width:760px){.ar-pad{display:flex}}
 @media (max-width:760px){
   .pxwin.arcade{width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}
-  .ar-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .ar-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  .ar-name{font-size:17px;padding:5px 5px 1px}
+  .ar-best{font-size:13px;padding:1px 5px 5px}
+  .ar-play{font-size:16px;padding:2px 6px}
+  .ar-head p{font-size:17px;margin-bottom:8px}
   .ar-head h2{font-size:32px}
   .ar-top b{font-size:22px}
   .ar-score{font-size:17px}
@@ -438,6 +447,8 @@ body.arcade-open .zoom,body.arcade-open .route,body.arcade-open .hint{visibility
 </section>
 
 <script src="city.js"></script>
+<script src="games/minesweeper.js"></script>
+<script src="games/solitaire.js"></script>
 <script src="arcade.js"></script>
 </body>
 </html>
