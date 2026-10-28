@@ -364,7 +364,7 @@
           c.setAttribute('opacity', (1 - u).toFixed(2));
         });
       });
-      tree(g, 9.4, 15.5, 1, C.green);
+      arcadeCabinet(g, 9.0, 15.1, 1);
     },
     function stats(g, b) {
       var parts = [[1.05, 9.2, 2, 1.0, 1.1, 1.3], [1.15, 9.3, 3.3, 0.8, 0.9, 1], [1.25, 9.4, 4.3, 0.6, 0.7, 0.8]];
@@ -538,6 +538,45 @@
       });
     }
   ];
+
+  /* ---------- mini arcade cabinet next to the house ---------- */
+  function arcadeCabinet(g, x, y, z) {
+    var w = 0.62, d = 0.5, h = 1.3, cab = el('g', { 'data-arcade': 1 }, g);
+    box(cab, x, y, z, w, d, h, '#3b3360', { top: '#5a5190', left: grad('#4a4178', 'l'), right: grad('#2e2850', 'r') });
+    var fl = el('g', { transform: faceL(x, y, z, w, d, h) }, cab);
+    var NS2 = { 'vector-effect': 'non-scaling-stroke', stroke: C.ink, 'stroke-width': 1.6 };
+    var marquee = el('rect', Object.assign({ x: 0.05, y: 0.04, width: w - 0.1, height: 0.13, fill: C.yellow }, NS2), fl);
+    el('rect', Object.assign({ x: 0.07, y: 0.22, width: w - 0.14, height: 0.42, fill: '#100e1c' }, NS2), fl);
+    var px = [0, 1, 2, 3, 4].map(function (k) { return el('rect', { x: 0.12 + k * 0.085, y: 0.5, width: 0.06, height: 0.06, fill: [C.pink, C.sky, C.green, C.yellow, C.orange][k] }, fl); });
+    var hero = el('rect', { x: 0.14, y: 0.3, width: 0.07, height: 0.07, fill: C.yellow }, fl);
+    el('rect', Object.assign({ x: 0.12, y: 0.86, width: w - 0.24, height: 0.22, fill: '#2a2447' }, NS2), fl);
+    el('rect', { x: 0.24, y: 0.92, width: 0.14, height: 0.04, fill: C.ink }, fl);
+    var fr = el('g', { transform: faceR(x, y, z, w, d, h) }, cab);
+    el('path', { d: 'M0,0.9 L' + d + ',0.45 L' + d + ',0.62 L0,1.07 Z', fill: C.pink, opacity: 0.85 }, fr);
+    el('path', { d: 'M0,1.1 L' + d + ',0.65 L' + d + ',0.74 L0,1.19 Z', fill: C.sky, opacity: 0.85 }, fr);
+    // control deck sticking out of the front
+    box(cab, x, y + d, z + 0.62, w, 0.24, 0.1, C.red, { top: '#ff7b88' });
+    var dk = P(x + 0.18, y + d + 0.12, z + 0.72);
+    el('line', { x1: dk[0], y1: dk[1], x2: dk[0], y2: dk[1] - 10, stroke: C.ink, 'stroke-width': 2.4 }, cab);
+    el('circle', { cx: dk[0], cy: dk[1] - 11, r: 3.6, fill: C.red, stroke: C.ink, 'stroke-width': 1.5 }, cab);
+    [[0.38, 0.08], [0.5, 0.15]].forEach(function (b) { var bp = P(x + b[0], y + d + b[1], z + 0.72); el('ellipse', { cx: bp[0], cy: bp[1], rx: 2.6, ry: 1.5, fill: C.yellow, stroke: C.ink, 'stroke-width': 1.2 }, cab); });
+    anim(function (t) {
+      marquee.setAttribute('fill', Math.floor(t * 3) % 2 ? C.yellow : '#fff3b0');
+      var k = (t * 0.6) % 1;
+      hero.setAttribute('x', (0.12 + k * 0.34).toFixed(3));
+      hero.setAttribute('y', (0.28 + Math.abs(Math.sin(t * 6)) * -0.04 + 0.04).toFixed(3));
+      px.forEach(function (r, i) { r.setAttribute('opacity', (Math.floor(t * 4) + i) % 3 ? 1 : 0.25); });
+    });
+    // hit area + floating label
+    poly(L.hits, [P(x, y, z + h + 0.4), P(x + w, y, z + h + 0.4), P(x + w, y, z), P(x + w, y + d + 0.24, z), P(x, y + d + 0.24, z), P(x, y + d + 0.24, z + h + 0.4)], 'transparent', { stroke: 'none', 'data-arcade': 1 });
+    var tp = P(x + w / 2, y + d / 2, z + h + 0.55);
+    var tg = el('g', { class: 'tag', 'data-arcade': 1, transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, L.tags);
+    var inner = el('g', null, tg);
+    el('rect', { x: -38, y: -11, width: 80, height: 26, fill: C.ink }, inner);
+    el('rect', { x: -42, y: -15, width: 80, height: 26, fill: C.yellow, stroke: C.ink, 'stroke-width': 2.5 }, inner);
+    el('text', { x: -2, y: 5, 'font-size': 22, 'text-anchor': 'middle', fill: C.ink }, inner).textContent = '▶ ARCADE';
+    anim(function (t) { inner.setAttribute('transform', 'translate(0,' + (Math.sin(t * 2.6) * 2.5).toFixed(1) + ') scale(' + clamp(0.7 / (view.s || 1), 0.55, 1.9).toFixed(3) + ')'); });
+  }
 
   /* ---------- GMT voxel letters in the middle ---------- */
   var GLYPHS = {
@@ -776,6 +815,7 @@
       thud: function () { tone(70, 0.3, 'sine', 0.14, 0.5); noise(0.2, 0.09, 300); },
       squeak: function () { tone(880 + Math.random() * 300, 0.12, 'sine', 0.06, 1.7); },
       pop: function () { tone(260, 0.06, 'square', 0.04, 2.5); },
+      tone: tone,
       get on() { return on; },
       set: function (v) { on = v; try { localStorage.setItem('city-sound', v ? '1' : '0'); } catch (e) {} if (v) ac(); }
     };
@@ -1430,6 +1470,7 @@
     if (!t || !t.closest) return;
     var cre = t.closest('[data-cre]');
     if (cre) { poke(+cre.getAttribute('data-cre')); return; }
+    if (t.closest('[data-arcade]')) { openArcade(); return; }
     var z = t.closest('[data-zone]');
     if (z) go(+z.getAttribute('data-zone'));
   }
@@ -1481,8 +1522,17 @@
     return ZONES[i].n + ' ' + (vi ? ZONES[i].vi : ZONES[i].en);
   }
 
+  // Touching the cabinet opens the games straight away; the hero strolls home behind the window.
+  function openArcade() {
+    SFX.click();
+    if (!hint.classList.contains('off')) hint.classList.add('off');
+    closePanel(true);
+    if (window.GMTArcade) GMTArcade.open();
+    if (state.here !== 0 || hero.mode === 'travel') { drawAnts(null, null); hero.travel(0, function () { state.here = 0; state.seen[0] = 1; state.next = 1; refreshChips(); drawAnts(0, 1); }); }
+  }
   function go(i) {
     SFX.click();
+    if (window.GMTArcade && document.body.classList.contains('arcade-open')) GMTArcade.close();
     if (!hint.classList.contains('off')) hint.classList.add('off');
     closePanel(true);
     drawAnts(null, null);
@@ -1554,6 +1604,7 @@
   document.getElementById('px-prev').addEventListener('click', function () { go(((state.here == null ? 1 : state.here) - 1 + ZONES.length) % ZONES.length); });
   document.addEventListener('keydown', function (e) {
     if (e.target.closest && e.target.closest('input,textarea')) return;
+    if (document.body.classList.contains('arcade-open')) return;
     if (e.key === 'Escape') closePanel();
     else if (e.key === 'ArrowRight' || e.key === 'n') go(state.here == null ? 0 : (state.here + 1) % ZONES.length);
     else if (e.key === 'ArrowLeft' || e.key === 'p') go(state.here == null ? 0 : (state.here - 1 + ZONES.length) % ZONES.length);
@@ -1633,5 +1684,5 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layoutTags(); });
   init();
 
-  window.GMTCity = { cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt };
+  window.GMTCity = { sfx: SFX, openArcade: openArcade, cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt };
 })();
