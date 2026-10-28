@@ -184,13 +184,14 @@ form.f .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ar-thumb{position:relative;display:block;aspect-ratio:4/3;border-bottom:3px solid var(--ink);overflow:hidden}
 .ar-thumb canvas{width:100%;height:100%;display:block;image-rendering:pixelated;filter:saturate(.55) brightness(.7)}
 .ar-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--yellow);color:var(--ink);font:400 22px/1 var(--px);padding:4px 10px;border:2px solid var(--ink);opacity:0}
-.ar-name{font:400 22px/1.05 var(--hd);padding:8px 8px 2px;background:var(--c)}
+.ar-name{font:400 22px/1.05 var(--hd);padding:8px 8px 2px;background:var(--c);height:calc(2.1em + 10px);overflow:hidden;display:block}
+.ar-name::before{content:"▶ ";visibility:hidden}
 .ar-name,.ar-best{color:var(--ink)}
 .ar-best{font:400 16px/1 var(--px);padding:2px 8px 8px;background:var(--c)}
 .ar-card.active{transform:translate(-3px,-5px);box-shadow:7px 9px 0 #000;outline-color:var(--yellow)}
 .ar-card.active .ar-thumb canvas{filter:none}
 .ar-card.active .ar-play{opacity:1;animation:blink 1s steps(2,end) infinite}
-.ar-card.active .ar-name::before{content:"▶ ";animation:blink 1s steps(2,end) infinite}
+.ar-card.active .ar-name::before{visibility:visible;animation:blink 1s steps(2,end) infinite}
 .ar-card:focus-visible{outline-color:var(--yellow)}
 .ar-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .ar-top b{font:400 28px/1 var(--hd);color:var(--yellow);flex:1}
