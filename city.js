@@ -36,17 +36,37 @@
   function r2h(r) { return '#' + r.map(function (v) { v = Math.round(clamp(v, 0, 255)); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
   function mix(a, b, t) { var A = h2r(a), B = h2r(b); return r2h(A.map(function (v, i) { return v + (B[i] - v) * t; })); }
   function shade(a, t) { return t < 0 ? mix(a, '#000000', -t) : mix(a, '#ffffff', t); }
-  // A flat sprite that flips around its vertical axis gets a solid edge, like a coin:
-  // copies of its silhouette are stacked behind it along the flip direction.
-  function coinEdge(parent, before, d, col, n) {
+  // A flat sprite that flips around its vertical axis gets a solid edge, like a coin.
+  // The edge is one vector shape: the outline swept sideways by the thickness
+  // (both copies of the outline plus a quad per side), drawn once stroked and once filled
+  // so only the outer silhouette keeps its ink line.
+  function coinEdge(parent, before, d, col) {
     var g = el('g', { 'pointer-events': 'none' }, parent);
     parent.insertBefore(g, before);
-    var outl = [], fill = [], i;
-    for (i = 0; i < n; i++) outl.push(el('path', { d: d, fill: col, stroke: C.ink, 'stroke-width': 2.6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g));
-    for (i = 0; i < n; i++) fill.push(el('path', { d: d, fill: col }, g));
+    var tmp = el('path', { d: d }, document.getElementById('city'));
+    var len = tmp.getTotalLength(), pts = [], N = 48;
+    for (var i = 0; i < N; i++) { var q = tmp.getPointAtLength(len * i / N); pts.push([q.x, q.y]); }
+    tmp.remove();
+    var outl = el('path', { fill: col, stroke: C.ink, 'stroke-width': 2.4, 'stroke-linejoin': 'round' }, g);
+    var fill = el('path', { fill: col }, g);
+    function ring(a) {
+      // every sub-shape wound the same way, so the nonzero fill is their union
+      var ar = 0;
+      for (var i = 0; i < a.length; i++) { var p = a[i], n = a[(i + 1) % a.length]; ar += p[0] * n[1] - n[0] * p[1]; }
+      if (ar < 0) a = a.slice().reverse();
+      return 'M' + a.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join('L') + 'Z';
+    }
     return {
-      set: function (tf) {
-        for (var i = 0; i < n; i++) { var t = tf((i + 1) / n); outl[i].setAttribute('transform', t); fill[i].setAttribute('transform', t); }
+      set: function (tf, dx) {
+        var moved = pts.map(function (p) { return [p[0] + dx, p[1]]; });
+        var out = ring(pts) + ring(moved);
+        for (var i = 0; i < N; i++) {
+          var j = (i + 1) % N;
+          if (Math.abs(pts[i][1] - pts[j][1]) < 0.01) continue;
+          out += ring([pts[i], pts[j], moved[j], moved[i]]);
+        }
+        outl.setAttribute('d', out); fill.setAttribute('d', out);
+        outl.setAttribute('transform', tf); fill.setAttribute('transform', tf);
       },
       show: function (on) { g.style.display = on ? '' : 'none'; }
     };
@@ -505,7 +525,7 @@
           anim(function (t) { bars.forEach(function (r, k) { r.setAttribute('width', (4 + 6 * (0.5 + 0.5 * Math.sin(t * 3 + k))).toFixed(1)); }); });
         } else {
           var STAR = 'M0,-14 L4,-4 L14,-4 L6,3 L9,13 L0,7 L-9,13 L-6,3 L-14,-4 L-4,-4 Z';
-          var edge = coinEdge(icg, inner, STAR, shade(C.yellow, -0.32), 8);
+          var edge = coinEdge(icg, inner, STAR, shade(C.yellow, -0.32));
           var starF = el('path', { d: STAR, fill: C.yellow, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, inner);
         }
         anim(function (t) {
@@ -515,7 +535,7 @@
           inner.setAttribute('transform', 'translate(0,' + by.toFixed(1) + ') scale(' + sx.toFixed(3) + ',1)' + (i === 0 ? ' rotate(' + (Math.sin(t * 1.7) * 8).toFixed(1) + ')' : ''));
           if (edge) {
             var sn = Math.sin(t * 4.2);
-            edge.set(function (k) { return 'translate(' + (sn * 3.2 * k).toFixed(2) + ',' + by.toFixed(1) + ') scale(' + sx.toFixed(3) + ',1)'; });
+            edge.set('translate(0,' + by.toFixed(1) + ') scale(' + sx.toFixed(3) + ',1)', sn * 3.2 / sx);
             starF.setAttribute('fill', sx < 0 ? shade(C.yellow, -0.1) : C.yellow);
           }
         });
@@ -1330,7 +1350,7 @@
     var g = el('g', { 'data-cre': i }, L.actors);
     var sh = el('ellipse', { rx: 11, ry: 4, fill: 'rgba(22,22,29,.18)' }, g);
     var body = el('g', null, g);
-    c.edge = coinEdge(g, body, SHAPES[c.type], shade(c.col, -0.3), 12);
+    c.edge = coinEdge(g, body, SHAPES[c.type], shade(c.col, -0.3));
     var clipId = 'clip' + i;
     var cp = el('clipPath', { id: clipId }, defs);
     el('path', { d: SHAPES[c.type] }, cp);
@@ -1443,7 +1463,7 @@
       c.edge.show(spinOn);
       if (spinOn) {
         var dep = Math.sin(u * Math.PI * 2) * 4.5 * c.sc * c.face;
-        c.edge.set(function (k) { return 'translate(' + (p[0] + dep * k).toFixed(1) + ',' + p[1].toFixed(1) + ')' + btf; });
+        c.edge.set('translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')' + btf, dep / (c.face * c.sc * sx));
       }
       c.blink -= dt;
       var bl = eyesShut || c.blink < 0;
