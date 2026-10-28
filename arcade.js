@@ -398,13 +398,18 @@
   }
   GAMES.unshift({
     id: 'flappy', en: 'Flappy GMT', vi: 'Flappy GMT', col: C.sky,
-    keys: [['SPACE / ↑', 'Flap', 'Vỗ cánh bay lên']],
+    keys: [['SPACE / ↑', 'Rocket boost', 'Phụt tên lửa bay lên']],
     reset: function () {
       this.y = 110; this.vy = 0; this.pipes = []; this.score = 0; this.dead = false; this.gx = 0; this.flap = 0;
-      this.next = 0.9;
+      this.next = 0.9; this.sparks = [];
     },
     update: function (dt) {
-      if (tapped.a || tapped.up || tapped.tap) { this.vy = -218; this.flap = 0.25; beep(620, 0.06, 'square', 0.035, 1.4); }
+      if (tapped.a || tapped.up || tapped.tap) {
+        this.vy = -218; this.flap = 0.25; beep(180, 0.12, 'sawtooth', 0.04, 2.2);
+        for (var n = 0; n < 5; n++) this.sparks.push({ x: FLAP_X - 26, y: this.y + 5, vx: -rnd(60, 130), vy: rnd(-30, 40), t: rnd(0.25, 0.5) });
+      }
+      this.sparks.forEach(function (k) { k.x += k.vx * dt; k.y += k.vy * dt; k.t -= dt; });
+      this.sparks = this.sparks.filter(function (k) { return k.t > 0; });
       this.vy += 760 * dt; this.y += this.vy * dt; this.flap -= dt;
       var sp = 92 + Math.min(40, this.score * 2);
       this.gx = (this.gx + sp * dt) % 16;
@@ -448,12 +453,19 @@
       rect(ctx, 0, 196, W, 44, '#2a2447');
       rect(ctx, 0, 196, W, 3, C.lilac);
       for (var x = -this.gx; x < W; x += 16) rect(ctx, x, 204, 8, 3, C.purple);
+      (this.sparks || []).forEach(function (k) { rect(ctx, k.x, k.y, 2, 2, k.t > 0.25 ? C.yellow : C.orange); });
       ctx.save(); ctx.translate(FLAP_X, this.y); ctx.rotate(flapPose(this)); ctx.scale(FLAP_S, FLAP_S);
-      // little wings on the pillow (decoration only, not part of the hitbox)
-      var up = this.flap > 0 || Math.floor(t * 10) % 2;
-      ctx.fillStyle = C.ink; ctx.fillRect(-20, up ? -6 : 9, 11, up ? 8 : 6);
-      ctx.fillStyle = '#fff'; ctx.fillRect(-19, up ? -5 : 10, 9, up ? 6 : 4);
-      ctx.fillStyle = C.lilac; ctx.fillRect(-19, up ? -1 : 12, 9, 2);
+      // rocket engine on the back of the pillow (decoration only, not part of the hitbox)
+      var burst = Math.max(0, this.flap) / 0.25, flick = Math.sin(t * 60) * 1.5;
+      var flame = 5 + burst * 10 + flick;
+      ctx.fillStyle = C.orange; ctx.fillRect(-25 - flame, 3, flame + 2, 7);
+      ctx.fillStyle = C.yellow; ctx.fillRect(-25 - flame * 0.6, 4, flame * 0.6 + 2, 5);
+      ctx.fillStyle = '#fff'; ctx.fillRect(-24 - flame * 0.25, 5, flame * 0.25 + 1, 3);
+      ctx.fillStyle = C.ink; ctx.fillRect(-25, 1, 9, 11); ctx.fillRect(-27, 2, 3, 9);
+      ctx.fillStyle = '#9aa3b8'; ctx.fillRect(-24, 2, 7, 9);
+      ctx.fillStyle = '#d8dde8'; ctx.fillRect(-24, 3, 7, 2);
+      ctx.fillStyle = '#5b6378'; ctx.fillRect(-26, 3, 2, 7);
+      ctx.fillStyle = C.red; ctx.fillRect(-22, 7, 3, 2);
       // ink outline under every part, then the colours
       ctx.fillStyle = C.ink;
       FLAP_PARTS.forEach(function (p) { ctx.fillRect(p[0] - 1, p[1] - 1, p[2] + 2, p[3] + 2); });

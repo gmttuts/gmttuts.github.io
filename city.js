@@ -540,6 +540,7 @@
   ];
 
   /* ---------- mini arcade cabinet next to the house ---------- */
+  var ARCADE_HIT = null;
   function arcadeCabinet(g, x, y, z) {
     var w = 0.62, d = 0.5, h = 1.3, cab = el('g', { 'data-arcade': 1 }, g);
     box(cab, x, y, z, w, d, h, '#3b3360', { top: '#5a5190', left: grad('#4a4178', 'l'), right: grad('#2e2850', 'r') });
@@ -568,14 +569,15 @@
       px.forEach(function (r, i) { r.setAttribute('opacity', (Math.floor(t * 4) + i) % 3 ? 1 : 0.25); });
     });
     // hit area + floating label
-    poly(L.hits, [P(x, y, z + h + 0.4), P(x + w, y, z + h + 0.4), P(x + w, y, z), P(x + w, y + d + 0.24, z), P(x, y + d + 0.24, z), P(x, y + d + 0.24, z + h + 0.4)], 'transparent', { stroke: 'none', 'data-arcade': 1 });
+    var m = 0.2;
+    ARCADE_HIT = poly(L.hits, [P(x - m, y - m, z + h + 1.1), P(x + w + m, y - m, z + h + 1.1), P(x + w + m, y - m, z), P(x + w + m, y + d + 0.24 + m, z - 0.1), P(x - m, y + d + 0.24 + m, z - 0.1), P(x - m, y + d + 0.24 + m, z + h + 1.1)], 'transparent', { stroke: 'none', 'data-arcade': 1 });
     var tp = P(x + w / 2, y + d / 2, z + h + 0.55);
     var tg = el('g', { class: 'tag', 'data-arcade': 1, transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, L.tags);
     var inner = el('g', null, tg);
     el('rect', { x: -38, y: -11, width: 80, height: 26, fill: C.ink }, inner);
     el('rect', { x: -42, y: -15, width: 80, height: 26, fill: C.yellow, stroke: C.ink, 'stroke-width': 2.5 }, inner);
     el('text', { x: -2, y: 5, 'font-size': 22, 'text-anchor': 'middle', fill: C.ink }, inner).textContent = '▶ ARCADE';
-    anim(function (t) { inner.setAttribute('transform', 'translate(0,' + (Math.sin(t * 2.6) * 2.5).toFixed(1) + ') scale(' + clamp(0.7 / (view.s || 1), 0.55, 1.9).toFixed(3) + ')'); });
+    anim(function (t) { inner.setAttribute('transform', 'translate(0,' + (Math.sin(t * 2.6) * 2.5).toFixed(1) + ') scale(' + clamp(0.8 / (view.s || 1), 0.8, 2.1).toFixed(3) + ')'); });
   }
 
   /* ---------- GMT voxel letters in the middle ---------- */
@@ -732,6 +734,8 @@
       t.ten.setAttribute('x', x0 + 36); t.tvi.setAttribute('x', x0 + 36);
     });
   }
+  // the cabinet's hit area must sit above the Home zone's, or clicks fall through to Home
+  if (ARCADE_HIT) L.hits.appendChild(ARCADE_HIT);
   var nextArrow = el('path', { d: 'M-10,-14 h20 l-10,12 Z', fill: C.yellow, stroke: C.ink, 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'pointer-events': 'none' }, L.tags);
   anim(function (t) {
     var ts = clamp(0.7 / (view.s || 1), 0.55, 1.9);
