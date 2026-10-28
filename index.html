@@ -1,882 +1,382 @@
 <!doctype html>
-<html lang="vi" data-lang="vi">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GMT — Xây sản phẩm cho designer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GMT City — Building products for designers</title>
 <meta name="description" content="GMT – Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder.">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#fff4e4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0e0c1c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f1e8">
 <meta property="og:type" content="website">
-<meta property="og:title" content="GMT — Xây sản phẩm cho designer">
+<meta property="og:title" content="GMT City — Building products for designers">
 <meta property="og:description" content="Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder.">
-<meta property="og:locale" content="vi_VN">
-<meta property="og:locale:alternate" content="en_US">
+<meta property="og:url" content="https://gmttuts.github.io/">
+<meta property="og:image" content="https://gmttuts.github.io/avatar.jpg">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="vi_VN">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@gmttuts">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='3' y='3' width='58' height='58' rx='14' fill='%23ff5a1f' stroke='%2316120f' stroke-width='5'/%3E%3Ctext x='32' y='42' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='22' text-anchor='middle' fill='%2316120f'%3EGMT%3C/text%3E%3C/svg%3E">
-<script>
-(function(){
-  var d = document.documentElement, l = null;
-  d.classList.add('js');
-  try { l = localStorage.getItem('lang'); } catch (e) {}
-  if (l !== 'vi' && l !== 'en') l = /^vi\b/i.test(navigator.language || '') ? 'vi' : 'en';
-  d.lang = l; d.dataset.lang = l;
-})();
-</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='1' y='1' width='14' height='14' fill='%23ffc933' stroke='%2316161d' stroke-width='2'/%3E%3Cpath fill='%2316161d' d='M4 5h3v1H5v4h1V8h1v3H4zM8 5h1v1h1V5h1v6h-1V7H9v4H8z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Be+Vietnam+Pro:wght@400;500;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script>
+(function () {
+  // A saved choice wins; otherwise pick by location: Vietnam's time zone → Vietnamese, anywhere else → English.
+  // (Time zone is read locally, so nothing about the visitor is sent anywhere.)
+  var l, tz = '';
+  try { l = localStorage.getItem('lang'); } catch (e) {}
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+  if (l !== 'vi' && l !== 'en') l = /^Asia\/(Ho_Chi_Minh|Saigon)$/.test(tz) ? 'vi' : 'en';
+  document.documentElement.setAttribute('data-lang', l);
+  document.documentElement.lang = l;
+})();
+</script>
 <style>
 :root{
-  --bg:#fff4e4;
-  --fg:#16120f;
-  --muted:#4a423b;
-  --card:#ffffff;
-  --line:#16120f;
-  --orange:#ff5a1f;
-  --on-orange:#16120f;
-  --yellow:#dcff3a;
-  --on-yellow:#16120f;
-  --blue:#2335ff;
-  --on-blue:#ffffff;
-  --pink:#ff9ad5;
-  --on-pink:#16120f;
-  --shadow:#16120f;
-  --focus:#2335ff;
-  --display:"Bricolage Grotesque", "Be Vietnam Pro", system-ui, sans-serif;
-  --body:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --gutter:clamp(16px, 4.5vw, 48px);
-  --max:1200px;
+  --ink:#16161d; --paper:#f4f1e8; --cream:#fbf8f0; --grid:#d9dde8;
+  --orange:#ff6b2c; --green:#3fcf8e; --purple:#6d5cf0; --blue:#3d8bff;
+  --yellow:#ffc933; --pink:#ff7eb9; --lilac:#c9b6ff; --sky:#3db8ff;
+  --px:"VT323",ui-monospace,monospace;
+  --hd:"VT323",ui-monospace,monospace;
+  --mono:"Space Mono",ui-monospace,Menlo,monospace;
 }
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#0e0c1c;
-    --fg:#fff4e4;
-    --muted:#cfc6bb;
-    --card:#1a1730;
-    --line:#fff4e4;
-    --orange:#ff6a33;
-    --on-orange:#140f0c;
-    --yellow:#dcff3a;
-    --on-yellow:#140f0c;
-    --blue:#3d4dff;
-    --on-blue:#ffffff;
-    --pink:#ff9ad5;
-    --on-pink:#140f0c;
-    --shadow:#000000;
-    --focus:#dcff3a;
-  }
-}
-*,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;overflow-x:clip}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+html{font-synthesis:none}
 body{
-  margin:0;background:var(--bg);color:var(--fg);
-  font-family:var(--body);font-size:1rem;line-height:1.6;
-  overflow-x:clip;-webkit-font-smoothing:antialiased;
+  overflow:hidden;color:var(--ink);font:14px/1.55 var(--mono);
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;
+  -webkit-tap-highlight-color:transparent;
 }
-img{max-width:100%;display:block}
+html[data-lang="en"] [lang="vi"], html[data-lang="vi"] [lang="en"]{display:none!important}
 a{color:inherit}
-h1,h2,h3{font-family:var(--display);line-height:1.08;margin:0;letter-spacing:-.02em;font-weight:800}
-p{margin:0}
-:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:6px}
-.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--gutter)}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.skip{position:absolute;left:12px;top:-60px;z-index:100;background:var(--yellow);color:var(--on-yellow);padding:12px 16px;border-radius:10px;font-weight:700}
-.skip:focus{top:12px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 
-/* ---------- Language ---------- */
-html[data-lang="vi"] [lang="en"],html[data-lang="en"] [lang="vi"]{display:none!important}
-.lang-btn{
-  min-height:44px;min-width:48px;padding:0 12px;border:2.5px solid var(--line);border-radius:999px;
-  background:var(--card);color:var(--fg);font:700 .95rem/1 var(--display);cursor:pointer;
-  display:inline-flex;align-items:center;justify-content:center;gap:2px;
-}
-.lang-btn:hover{background:var(--yellow);color:var(--on-yellow)}
-.lang-btn .off{opacity:.4}
-@media (max-width:419px){
-  .menu summary{padding:0;width:44px}
-  .menu summary .menu-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
-  .top .wrap{gap:8px}
-  .top-actions{gap:6px}
-  .top .btn{padding:8px 14px}
-}
+/* ---------- city canvas ---------- */
+#city{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#city.panning{cursor:grabbing}
+#city [data-zone],#city [data-cre]{cursor:pointer}
+#city text{font-family:var(--px)}
+#city .tag text{font-family:var(--hd);font-weight:400}
 
-/* ---------- Buttons ---------- */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:.5em;
-  min-height:48px;padding:12px 22px;border-radius:999px;
-  font-family:var(--display);font-weight:700;font-size:1.05rem;text-decoration:none;
-  border:2.5px solid var(--line);background:var(--card);color:var(--fg);
-  box-shadow:4px 4px 0 var(--shadow);
-  transition:transform .2s cubic-bezier(.3,1.6,.5,1), box-shadow .2s;
-  cursor:pointer;
-}
-.btn:hover{transform:translate(-2px,-2px) rotate(-1.5deg);box-shadow:6px 6px 0 var(--shadow)}
-.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
-.btn--main{background:var(--orange);color:var(--on-orange);font-size:1.15rem}
-.btn--yellow{background:var(--yellow);color:var(--on-yellow)}
-.btn--blue{background:var(--blue);color:var(--on-blue)}
+/* ---------- HUD ---------- */
+.top{position:fixed;left:12px;right:12px;top:12px;display:flex;align-items:center;gap:10px;pointer-events:none;z-index:5}
+.logo{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--cream);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:6px 12px 6px 6px;text-decoration:none}
+.logo img{width:34px;height:34px;border:2px solid var(--ink);image-rendering:auto;display:block}
+.logo b{font:400 23px/1 var(--px);letter-spacing:.5px}
+.logo small{display:block;font:400 18px/1.1 var(--hd);letter-spacing:.3px}
+.top .sp{flex:1}
+.pbtn{pointer-events:auto;min-width:44px;height:44px;padding:0 12px;background:var(--cream);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);font:400 22px/1 var(--px);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.pbtn:hover{background:var(--yellow)}
+.pbtn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.pbtn[aria-pressed="true"]{background:var(--ink);color:var(--cream)}
+.pbtn svg{width:18px;height:18px;display:block}
 
-/* ---------- Header ---------- */
-.top{
-  position:sticky;top:0;z-index:50;
-  background:var(--bg);
-  background:color-mix(in srgb, var(--bg) 88%, transparent);
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  border-bottom:2.5px solid var(--line);
-}
-.top .wrap{position:relative;display:flex;align-items:center;gap:12px;min-height:64px}
-.logo{
-  font-family:var(--display);font-weight:800;font-size:1.6rem;text-decoration:none;
-  display:inline-flex;align-items:center;min-height:44px;padding:0 4px;letter-spacing:-.04em;
-}
-.logo span{display:inline-block;background:var(--orange);color:var(--on-orange);padding:0 .25em;border-radius:.25em;transform:rotate(-4deg);border:2px solid var(--line)}
-.nav{display:none;margin-left:auto}
-.nav ul{list-style:none;display:flex;gap:4px;margin:0;padding:0}
-.nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;text-decoration:none;font-weight:500;border-radius:999px}
-.nav a:hover{background:var(--yellow);color:var(--on-yellow)}
-.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
-.top .btn{min-height:44px;padding:8px 18px;font-size:1rem;box-shadow:3px 3px 0 var(--shadow)}
-.menu{position:static}
-.menu summary{
-  list-style:none;cursor:pointer;min-height:44px;min-width:44px;padding:0 14px;
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  border:2.5px solid var(--line);border-radius:999px;font-weight:700;background:var(--card);
-}
-.menu summary::-webkit-details-marker{display:none}
-.menu summary .bars{width:16px;height:10px;position:relative;display:inline-block}
-.menu summary .bars::before,.menu summary .bars::after{content:"";position:absolute;left:0;right:0;height:2.5px;background:currentColor;border-radius:2px}
-.menu summary .bars::before{top:0}.menu summary .bars::after{bottom:0}
-.menu[open] summary{background:var(--yellow);color:var(--on-yellow)}
-.menu-panel{
-  position:absolute;right:var(--gutter);top:calc(100% + 10px);width:min(260px, calc(100vw - 2 * var(--gutter)));
-  background:var(--card);border:2.5px solid var(--line);border-radius:18px;box-shadow:5px 5px 0 var(--shadow);
-  padding:8px;
-}
-.menu-panel ul{list-style:none;margin:0;padding:0}
-.menu-panel a{display:flex;align-items:center;min-height:48px;padding:0 14px;border-radius:12px;text-decoration:none;font-family:var(--display);font-weight:700;font-size:1.15rem}
-.menu-panel a:hover{background:var(--yellow);color:var(--on-yellow)}
-@media (min-width:860px){
-  .nav{display:block}
-  .menu{display:none}
-  .top-actions{margin-left:8px}
-}
+.zoom{position:fixed;right:12px;bottom:92px;display:flex;flex-direction:column;gap:8px;z-index:5}
+.zoom{width:64px}
+.zoom .pbtn{width:100%;padding:0;font-size:26px}
+.zoom .follow{height:58px;flex-direction:column;gap:4px;font-size:17px;line-height:1;padding-top:2px}
+.zoom .follow span{display:block;text-align:center}
 
-/* ---------- Section scaffolding ---------- */
-section{position:relative;scroll-margin-top:72px}
-.sec{padding:clamp(72px,12vw,140px) 0;overflow-x:clip}
-.label{
-  display:inline-flex;align-items:center;gap:.5em;
-  font-family:var(--display);font-weight:700;font-size:.95rem;text-transform:uppercase;letter-spacing:.08em;
-  padding:6px 14px;border:2.5px solid var(--line);border-radius:999px;background:var(--card);
-  transform:rotate(-2deg);
-}
-.label::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--orange)}
-.big-num{
-  position:absolute;right:var(--gutter);top:clamp(24px,5vw,56px);
-  font-family:var(--display);font-weight:800;font-size:clamp(5rem,24vw,15rem);line-height:.8;
-  color:transparent;-webkit-text-stroke:2px var(--fg);opacity:.18;pointer-events:none;user-select:none;
-}
-.h2{font-size:clamp(2.1rem,8.6vw,5.4rem);margin-top:22px;max-width:16ch}
-.lead{font-size:clamp(1.05rem,2.4vw,1.3rem);color:var(--muted);max-width:44ch;margin-top:20px}
+.route{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:5;background:var(--cream);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:6px 8px;max-width:calc(100vw - 24px)}
+.route ol{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:4px}
+.route li{display:flex;align-items:center;gap:4px}
+.route li+li::before{content:"";width:14px;height:3px;background:repeating-linear-gradient(90deg,var(--ink) 0 3px,transparent 3px 6px)}
+.route button{border:2px solid var(--ink);background:#fff;min-width:40px;height:40px;padding:0 8px;cursor:pointer;display:flex;align-items:center;gap:5px;font:400 20px/1 var(--hd);letter-spacing:.02em}
+.route button span.nm{font:inherit;white-space:nowrap}
+.route button:hover{background:var(--yellow)}
+.route button.seen{background:#e8f9ef}
+.route button.here{background:var(--ink);color:var(--cream)}
+.route button.next{animation:blink 1s steps(2,end) infinite}
+.route .lbl{font:400 17px/1 var(--px);margin-right:4px}
+@keyframes blink{50%{background:var(--yellow);color:var(--ink)}}
 
-/* ---------- Hero ---------- */
-.hero{padding:clamp(40px,8vw,96px) 0 clamp(56px,9vw,110px);overflow-x:clip}
-.eyebrow{font-family:var(--display);font-weight:700;font-size:1.05rem;display:inline-flex;flex-wrap:wrap;gap:8px}
-.eyebrow span{display:inline-block;padding:6px 14px;border:2.5px solid var(--line);border-radius:999px;background:var(--yellow);color:var(--on-yellow)}
-.eyebrow span:nth-child(2){background:var(--pink);color:var(--on-pink);transform:rotate(3deg)}
-.hero h1{
-  transform-origin:left top;will-change:transform;
-  font-size:clamp(3rem,15.5vw,10.5rem);line-height:.98;letter-spacing:-.045em;
-  margin:28px 0 0;max-width:100%;overflow-wrap:break-word;
-}
-.hero h1 .w{display:inline-block;margin-right:.18em}
-.hero h1 .w:last-child{margin-right:0}
-.hero h1 .hl{
-  background:var(--orange);color:var(--on-orange);padding:0 .12em .04em;border-radius:.12em;
-  border:3px solid var(--line);box-shadow:.06em .06em 0 var(--shadow);
-}
-.hero h1 .tilt{display:inline-block;transform:rotate(-3deg)}
-.hero-lead{font-size:clamp(1.05rem,2.6vw,1.35rem);max-width:40ch;margin-top:clamp(32px,4vw,48px)}
-.ctas{display:flex;flex-wrap:wrap;gap:14px;margin-top:32px}
-.ctas .btn{flex:1 1 100%}
-@media (min-width:560px){.ctas .btn{flex:0 0 auto}}
-.socials{list-style:none;padding:0;margin:28px 0 0;display:flex;flex-wrap:wrap;gap:8px}
-.socials a{
-  display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:0 14px;
-  border:2px solid var(--line);border-radius:999px;text-decoration:none;font-weight:500;font-size:1rem;
-  transition:transform .2s, background .2s;
-}
-.socials a:hover{background:var(--fg);color:var(--bg);transform:rotate(-3deg)}
-.hero-stage{position:relative}
-.sticker{
-  position:absolute;z-index:2;font-family:var(--display);font-weight:800;pointer-events:none;
-  display:grid;place-items:center;text-align:center;line-height:1.05;border:2.5px solid var(--line);
-}
-.sticker--star{
-  right:-6px;top:-18px;width:96px;height:96px;font-size:.85rem;background:var(--blue);color:var(--on-blue);
-  clip-path:polygon(50% 0,61% 18%,82% 9%,80% 31%,100% 38%,86% 55%,98% 75%,76% 78%,70% 100%,50% 88%,30% 100%,24% 78%,2% 75%,14% 55%,0 38%,20% 31%,18% 9%,39% 18%);
-  border:none;
-}
-.sticker--star b{display:block;transform:rotate(12deg)}
-@media (max-width:859px){
-  .sticker--star{top:-14px;right:2px;width:72px;height:72px;font-size:.7rem}
-  .eyebrow{padding-right:76px}
-}
-.top .btn{white-space:nowrap}
-@media (min-width:860px){.sticker--star{width:150px;height:150px;font-size:1.1rem;right:2%;top:10px}}
-.spin{animation:spin 14s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.hint{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:4;background:var(--ink);color:var(--cream);font:400 22px/1.1 var(--hd);padding:8px 14px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--sky);white-space:nowrap;pointer-events:none;transition:opacity .4s}
+.hint.off{opacity:0}
 
-/* hero word entrance (only when JS present so no-JS shows all) */
-.js .hero h1 .w{opacity:0;transform:translateY(.5em) rotate(6deg);animation:wordIn .9s cubic-bezier(.2,1.4,.4,1) forwards}
-.js .hero h1 .w:nth-child(1){animation-delay:.05s}
-.js .hero h1 .w:nth-child(2){animation-delay:.14s}
-.js .hero h1 .w:nth-child(3){animation-delay:.23s}
-.js .hero h1 .w:nth-child(4){animation-delay:.32s}
-.js .hero h1 .w:nth-child(5){animation-delay:.41s}
-.js .hero h1 .w:nth-child(6){animation-delay:.55s}
-@keyframes wordIn{to{opacity:1;transform:none}}
+/* ---------- pixel window ---------- */
+.pxwin{position:fixed;right:24px;top:84px;width:min(440px,calc(100vw - 48px));max-height:calc(100dvh - 176px);display:flex;flex-direction:column;z-index:6;background:var(--cream);border:3px solid var(--ink);box-shadow:0 0 0 4px var(--sky),0 0 0 7px var(--ink),10px 10px 0 7px var(--ink)}
+.pxwin[hidden]{display:none}
+.pxwin.pop{animation:pop .32s steps(5,end)}
+@keyframes pop{0%{transform:scale(.4) translateY(30px)}60%{transform:scale(1.04)}100%{transform:none}}
+.pxbar{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 12px;border-bottom:3px solid var(--ink);font:400 20px/1 var(--px);letter-spacing:.5px;flex:none}
+.pxbar .stripes{flex:1;height:12px;background:repeating-linear-gradient(var(--ink) 0 2px,transparent 2px 4px)}
+.pxbar button{width:30px;height:28px;border:2px solid var(--ink);background:#fff;cursor:pointer;font:400 22px/1 var(--px);padding:0}
+.pxbar button:hover{background:var(--pink)}
+.pxbody{overflow:auto;padding:16px 18px 18px;overscroll-behavior:contain}
+.pxbody h2{font:400 40px/1 var(--hd);margin:0 0 4px;letter-spacing:.5px}
+.pxbody h3{font:400 26px/1.05 var(--hd);margin:16px 0 6px;letter-spacing:.3px}
+.pxbody p{margin:0 0 10px}
+.pxbody .kick{font:400 17px/1 var(--px);color:#fff;background:var(--purple);display:inline-block;padding:4px 6px;margin-bottom:8px}
+.pxbody .lead{font:400 31px/1.1 var(--hd);margin:6px 0 12px}
+.pxfoot{display:flex;align-items:stretch;gap:10px;padding:10px 13px 13px 10px;border-top:3px solid var(--ink);flex:none;background:#fff}
+.pxfoot button{flex:none;border:2px solid var(--ink);background:var(--cream);height:40px;padding:0 12px;cursor:pointer;font:400 21px/1 var(--hd);letter-spacing:.02em}
+.pxfoot button{box-shadow:3px 3px 0 var(--ink);display:flex;align-items:center;justify-content:center;min-width:44px}
+.pxfoot button.nx{flex:1;background:var(--yellow);justify-content:space-between;gap:8px}
+.pxfoot button.nx span.nm{font:inherit}
+.pxfoot button:hover{background:var(--pink)}
+.pxfoot button:active{transform:translate(2px,2px);box-shadow:none}
 
-/* ---------- Stats ---------- */
-.stats{padding:0 0 clamp(56px,10vw,120px);overflow-x:clip}
-.stat-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.stat{
-  border:2.5px solid var(--line);border-radius:22px;padding:18px 16px 20px;box-shadow:5px 5px 0 var(--shadow);
-  display:flex;flex-direction:column;justify-content:space-between;min-height:168px;
-}
-.stat:nth-child(1){background:var(--orange);color:var(--on-orange);transform:rotate(-2deg)}
-.stat:nth-child(2){background:var(--yellow);color:var(--on-yellow);transform:rotate(1.5deg) translateY(10px)}
-.stat:nth-child(3){background:var(--blue);color:var(--on-blue);transform:rotate(1.2deg)}
-.stat:nth-child(4){background:var(--pink);color:var(--on-pink);transform:rotate(-1.6deg) translateY(10px)}
-.stat strong{font-family:var(--display);font-weight:800;font-size:clamp(2.3rem,11vw,5rem);line-height:.95;letter-spacing:-.04em;display:block}
-.stat > span{font-size:1rem;font-weight:500;line-height:1.35;margin-top:12px;display:block}
-@media (min-width:860px){.stat-grid{grid-template-columns:repeat(4,1fr);gap:22px}.stat{min-height:230px;padding:24px}}
+.me{display:flex;gap:14px;align-items:center;margin-bottom:6px}
+.me img{width:76px;height:76px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--orange);flex:none}
+.rows{display:grid;gap:6px;margin:10px 0 12px}
+.rows div{display:flex;justify-content:space-between;gap:10px;border:2px solid var(--ink);background:#fff;padding:6px 10px}
+.rows b{font:400 21px/1.2 var(--hd)}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px}
+.big div{border:2px solid var(--ink);background:#fff;padding:10px;box-shadow:3px 3px 0 var(--ink)}
+.big b{display:block;font:400 42px/1 var(--hd)}
+.big div>span{font-size:12px;line-height:1.3;display:block}
+.big div:nth-child(1){background:#ffe4d6}.big div:nth-child(2){background:#dcf7ea}.big div:nth-child(3){background:#e6e0ff}.big div:nth-child(4){background:#dbeaff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;padding:0;list-style:none}
+.chips li{border:2px solid var(--ink);background:#fff;padding:3px 8px;font:400 19px/1.2 var(--hd)}
+.chips.keys li{box-shadow:0 3px 0 var(--ink);margin-bottom:3px}
+.chips.keys li:nth-child(6n+1){background:#ffd9c7}.chips.keys li:nth-child(6n+2){background:#d4f5e5}.chips.keys li:nth-child(6n+3){background:#e2dcff}.chips.keys li:nth-child(6n+4){background:#fff0c2}.chips.keys li:nth-child(6n+5){background:#ffdcee}.chips.keys li:nth-child(6n+6){background:#d6e8ff}
+.card{border:2px solid var(--ink);background:#fff;padding:12px;margin:0 0 12px;box-shadow:4px 4px 0 var(--ink)}
+.card h3{margin-top:0}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0 10px;font-size:13px}
+.card dt{font-weight:700}
+.card dd{margin:0}
+.res{font:400 35px/1 var(--hd);color:var(--orange)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--ink);background:var(--yellow);padding:8px 12px;text-decoration:none;font:400 19px/1 var(--px);box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+.btn:hover{background:var(--pink)}
+.btn.alt{background:#fff}
+.svc{display:grid;gap:8px;margin:8px 0 14px}
+.svc div{display:flex;gap:12px;align-items:center;border:2px solid var(--ink);background:#fff;padding:10px}
+.svc i{font-style:normal;width:38px;height:38px;flex:none;border:2px solid var(--ink);display:grid;place-items:center;font:400 28px/1 var(--px)}
+.svc b{font:400 25px/1.1 var(--hd);display:block}
+.soc{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 4px}
+.soc a{border:2px solid var(--ink);background:#fff;padding:8px 8px;min-height:36px;align-items:center;text-decoration:none;font:400 19px/1 var(--px);display:flex;justify-content:space-between}
+.soc a:hover{background:var(--yellow)}
+.mail{display:block;font:700 19px/1.2 var(--mono);margin:4px 0 12px;word-break:break-all}
+form.f .send{width:100%;min-height:52px;justify-content:center;font-size:24px;margin-top:4px;gap:10px}
+form.f .send span{display:inline-flex;align-items:center;gap:10px}
+form.f{display:grid;gap:8px}
+form.f label{font:400 17px/1 var(--px);display:grid;gap:4px}
+form.f input,form.f textarea{font:14px/1.4 var(--mono);border:2px solid var(--ink);background:#fff;padding:8px;width:100%;border-radius:0}
+form.f textarea{min-height:72px;height:72px;resize:vertical}
+form.f .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
-/* ---------- Brands marquee ---------- */
-.brands{border-top:2.5px solid var(--line);border-bottom:2.5px solid var(--line);background:var(--fg);color:var(--bg);padding:28px 0 32px;overflow:hidden}
-.brands h2{font-family:var(--body);font-weight:700;font-size:1rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
-.marquee{overflow:hidden;display:flex;width:100%}
-.marquee-track{display:flex;flex:0 0 auto;list-style:none;margin:0;padding:0;animation:marquee 26s linear infinite}
-.marquee:hover .marquee-track{animation-play-state:paused}
-.marquee-track li{
-  flex:0 0 auto;font-family:var(--display);font-weight:800;font-size:clamp(3rem,13vw,8rem);line-height:1.05;
-  letter-spacing:-.03em;padding-right:.35em;display:flex;align-items:center;gap:.35em;white-space:nowrap;
-}
-.marquee-track li::after{content:"✺";font-size:.45em;color:var(--orange)}
-.marquee-track li:nth-child(even){color:transparent;-webkit-text-stroke:2px var(--bg)}
-@keyframes marquee{to{transform:translate3d(-100%,0,0)}}
+.pxwin.wide{width:min(720px,calc(100vw - 48px))}
+.pxwin.wide .big{grid-template-columns:repeat(4,1fr)}
+.pxwin.wide article[data-zone="2"]{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.pxwin.wide article[data-zone="2"]>.kick,.pxwin.wide article[data-zone="2"]>h2{grid-column:1/-1;justify-self:start}
+.pxwin.wide article[data-zone="4"]{columns:2;column-gap:20px}
+.pxwin.wide article[data-zone="4"] ul{break-inside:avoid}
+.pxwin.wide article[data-zone="4"] h3{break-after:avoid}
+.pxwin.wide article[data-zone="6"],.pxwin.wide article[data-zone="0"],.pxwin.wide article[data-zone="3"]{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-content:start}
+.pxwin.wide article[data-zone="6"]>*{grid-column:1}
+.pxwin.wide article[data-zone="6"]>h3:last-of-type,.pxwin.wide article[data-zone="6"]>.soc{grid-column:2}
+.pxwin.wide article[data-zone="6"]>h3:last-of-type{grid-row:3;margin-top:16px!important}
+.pxwin.wide article[data-zone="6"]>.soc{grid-row:4/7;grid-template-columns:1fr;align-content:start}
+.pxwin.wide article[data-zone="0"]>*,.pxwin.wide article[data-zone="3"]>*{grid-column:1/-1}
+.pxwin.wide article[data-zone="0"]>.rows,.pxwin.wide article[data-zone="3"]>.big{grid-column:1}
+.pxwin.wide article[data-zone="0"]>p:not(.lead),.pxwin.wide article[data-zone="3"]>.rows{grid-column:2}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-/* ---------- Products ---------- */
-.prod-grid{display:grid;gap:34px;margin-top:48px}
-@media (min-width:860px){.prod-grid{grid-template-columns:1.15fr 1fr;align-items:start;gap:40px}}
-.card{
-  position:relative;border:2.5px solid var(--line);border-radius:28px;background:var(--card);
-  padding:26px 20px 24px;box-shadow:7px 7px 0 var(--shadow);
+@media (max-width:760px){
+  .logo small{display:none}
+  .logo{padding:4px 10px 4px 4px}
+  .logo img{width:30px;height:30px}
+  .route{bottom:10px;padding:5px}
+  .route .lbl,.route button span.nm,.route li.rl{display:none}
+  .route li+li::before{width:3px}
+  .route li.rl+li::before{display:none}
+  .route ol{gap:2px}
+  .route button{min-width:36px;height:38px;padding:0 4px;justify-content:center}
+  .zoom{bottom:80px;right:10px;gap:6px}
+  .zoom{width:60px}
+  .zoom .pbtn{height:42px}
+  .zoom .follow{height:54px;font-size:16px}
+  .hint{top:70px;font-size:19px;white-space:normal;width:max-content;max-width:calc(100vw - 32px);text-align:center}
+  body.panel-open .route{display:none}
+  .pxwin{left:12px;right:12px;top:auto;bottom:14px;width:auto;max-height:calc(100dvh - 210px);box-shadow:0 0 0 3px var(--sky),0 0 0 6px var(--ink),6px 6px 0 6px var(--ink)}
+  body.panel-open .zoom{display:none}
+  .pxbody{padding:14px}
+  .pxbody h2{font-size:36px}
 }
-@media (min-width:560px){.card{padding:34px 32px 30px}}
-.card--a{transform:rotate(-1.2deg)}
-.card--b{transform:rotate(1.4deg)}
-@media (min-width:860px){.card--b{margin-top:80px}}
-.status{
-  position:absolute;top:-18px;right:16px;font-family:var(--display);font-weight:800;font-size:.95rem;
-  padding:6px 14px;border-radius:999px;border:2.5px solid var(--line);transform:rotate(4deg);
-  display:inline-flex;align-items:center;gap:8px;
+@media (max-width:760px) and (max-height:780px){
+  .pxwin{max-height:calc(100dvh - 82px)}
+  .pxbody h2{font-size:32px}
+  .card{padding:10px;margin-bottom:10px}
+  .card dl{margin:4px 0 8px}
+  .pxbody h3{margin:10px 0 4px}
+  .chips{margin:4px 0 6px;gap:5px}
+  .chips li{padding:2px 6px}
+  .res{font-size:30px}
+  .card .btn{padding:6px 10px}
 }
-.status::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
-.status--live{background:var(--yellow);color:var(--on-yellow)}
-.status--dev{background:var(--pink);color:var(--on-pink);transform:rotate(-4deg)}
-.card h3{font-size:clamp(2rem,8vw,3.4rem);letter-spacing:-.035em}
-.card .sub{font-family:var(--display);font-weight:600;font-size:1.1rem;color:var(--muted);margin-top:6px}
-.card ul.facts{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:10px}
-.card ul.facts li{padding-left:28px;position:relative}
-.card ul.facts li::before{content:"→";position:absolute;left:0;font-weight:700;color:var(--orange)}
-.card-num{
-  margin-top:22px;display:flex;align-items:baseline;flex-wrap:wrap;gap:10px;
-  background:var(--blue);color:var(--on-blue);border-radius:18px;padding:14px 18px;border:2.5px solid var(--line);
-}
-.card-num strong{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,10vw,3.8rem);line-height:1;letter-spacing:-.04em}
-.card .btn{margin-top:24px}
-.card .btn{width:100%}
-@media (min-width:560px){.card .btn{width:auto}}
-
-/* ---------- Kinetic band ---------- */
-.band{overflow:hidden;padding:8px 0;border-top:2.5px solid var(--line);border-bottom:2.5px solid var(--line);background:var(--orange);color:var(--on-orange)}
-.band-row{
-  font-family:var(--display);font-weight:800;font-size:clamp(2.6rem,11vw,7rem);line-height:1.1;white-space:nowrap;
-  letter-spacing:-.03em;will-change:transform;
-}
-.band-row--out{color:transparent;-webkit-text-stroke:2px var(--on-orange)}
-
-/* ---------- Projects ---------- */
-.proj-list{display:grid;gap:56px;margin-top:52px}
-@media (min-width:860px){.proj-list{grid-template-columns:1fr 1fr;gap:40px}.proj:nth-child(2){margin-top:110px}}
-.proj{position:relative}
-.video{
-  position:relative;aspect-ratio:16/9;border:2.5px solid var(--line);border-radius:22px;overflow:hidden;
-  background:#000;box-shadow:7px 7px 0 var(--shadow);
-}
-.proj:nth-child(1) .video{transform:rotate(-1.5deg)}
-.proj:nth-child(2) .video{transform:rotate(1.5deg)}
-.video button{
-  all:unset;position:absolute;inset:0;cursor:pointer;display:block;
-}
-.video button:focus-visible{outline:4px solid var(--focus);outline-offset:-6px}
-.video img{width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
-.video button:hover img{transform:scale(1.05)}
-.play{
-  position:absolute;left:50%;top:50%;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;
-  background:var(--yellow);border:3px solid #16120f;display:grid;place-items:center;
-  box-shadow:4px 4px 0 #16120f;transition:transform .25s cubic-bezier(.3,1.6,.5,1);
-}
-.play::before{content:"";margin-left:6px;border-left:22px solid #16120f;border-top:14px solid transparent;border-bottom:14px solid transparent}
-.video button:hover .play{transform:scale(1.15) rotate(-8deg)}
-.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.proj h3{font-size:clamp(1.7rem,6.4vw,2.8rem);margin-top:30px;letter-spacing:-.03em}
-.proj .sub{color:var(--muted);margin-top:6px;font-weight:500}
-.views{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px;margin-top:16px}
-.views strong{
-  font-family:var(--display);font-weight:800;font-size:clamp(2.6rem,12vw,4.6rem);line-height:1;letter-spacing:-.04em;
-  background:var(--yellow);color:var(--on-yellow);padding:0 .14em;border-radius:.14em;border:2.5px solid var(--line);
-  transform:rotate(-2deg);display:inline-block;
-}
-.tags{list-style:none;padding:0;margin:18px 0 0;display:flex;flex-wrap:wrap;gap:8px}
-.tags li{border:2px solid var(--line);border-radius:999px;padding:4px 12px;font-size:1rem;font-weight:500}
-
-/* ---------- Services ---------- */
-.dich-vu{background:var(--blue);color:var(--on-blue);border-top:2.5px solid var(--line);border-bottom:2.5px solid var(--line)}
-.dich-vu .lead{color:var(--on-blue);opacity:.9}
-.dich-vu .label{background:var(--yellow);color:var(--on-yellow);border-color:#16120f}
-.dich-vu .big-num{-webkit-text-stroke-color:var(--on-blue);opacity:.3}
-.svc{list-style:none;margin:52px 0 0;padding:0;counter-reset:svc;border-top:2.5px solid currentColor}
-.svc li{
-  counter-increment:svc;display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:start;
-  padding:26px 0;border-bottom:2.5px solid currentColor;position:relative;
-}
-.svc li::before{
-  content:"0" counter(svc);grid-row:span 2;font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,10vw,5rem);
-  line-height:.9;color:transparent;-webkit-text-stroke:2px var(--on-blue);
-}
-.svc h3{font-size:clamp(1.8rem,7vw,4rem);letter-spacing:-.035em;transition:transform .3s cubic-bezier(.3,1.6,.5,1)}
-.svc p{font-size:1.05rem;max-width:46ch;opacity:.92}
-.svc li:hover h3{transform:translateX(12px) skewX(-6deg)}
-@media (min-width:860px){
-  .svc li{grid-template-columns:140px 1fr 1fr;align-items:center}
-  .svc li::before{grid-row:auto}
-}
-
-/* ---------- Skills ---------- */
-.skill-grid{display:grid;gap:22px;margin-top:52px}
-@media (min-width:700px){.skill-grid{grid-template-columns:1fr 1fr;gap:28px}}
-.skill{border:2.5px solid var(--line);border-radius:24px;padding:22px 18px;box-shadow:5px 5px 0 var(--shadow);background:var(--card)}
-.skill:nth-child(1){transform:rotate(-1deg)}
-.skill:nth-child(2){transform:rotate(1.2deg)}
-.skill:nth-child(3){transform:rotate(.8deg)}
-.skill:nth-child(4){transform:rotate(-1.3deg)}
-.skill h3{font-size:clamp(1.6rem,6vw,2.4rem);display:inline-block;padding:0 .2em;border-radius:.2em}
-.skill:nth-child(1) h3{background:var(--orange);color:var(--on-orange)}
-.skill:nth-child(2) h3{background:var(--yellow);color:var(--on-yellow)}
-.skill:nth-child(3) h3{background:var(--blue);color:var(--on-blue)}
-.skill:nth-child(4) h3{background:var(--pink);color:var(--on-pink)}
-.chips{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-wrap:wrap;gap:8px}
-.chips li{
-  border:2px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:500;font-size:1rem;
-  transition:transform .25s cubic-bezier(.3,1.6,.5,1), background .2s, color .2s;
-}
-.chips li:hover{transform:rotate(-4deg) scale(1.06);background:var(--fg);color:var(--bg)}
-
-/* ---------- Contact ---------- */
-.lien-he{background:var(--yellow);color:var(--on-yellow);border-top:2.5px solid var(--line)}
-.lien-he .lead{color:var(--on-yellow);opacity:.85}
-.lien-he .label{border-color:#16120f;background:#fff;color:#16120f}
-.lien-he .big-num{-webkit-text-stroke-color:var(--on-yellow);opacity:.22}
-.lien-he :focus-visible{outline-color:#2335ff}
-.mail-big{
-  display:inline-block;margin-top:30px;font-family:var(--display);font-weight:800;
-  font-size:clamp(1.7rem,8.4vw,5.6rem);line-height:1.05;letter-spacing:-.04em;
-  text-decoration:none;overflow-wrap:anywhere;max-width:100%;
-  background-image:linear-gradient(currentColor,currentColor);background-size:100% 4px;background-repeat:no-repeat;background-position:0 100%;
-  padding-bottom:4px;transition:background-size .35s;
-}
-.mail-big:hover{background-size:0 4px;background-position:100% 100%}
-.contact-grid{display:grid;gap:36px;margin-top:44px}
-@media (min-width:900px){.contact-grid{grid-template-columns:1.2fr .8fr;align-items:start}}
-form.f{
-  background:#fff;color:#16120f;border:2.5px solid #16120f;border-radius:26px;padding:22px 18px;
-  box-shadow:7px 7px 0 #16120f;display:grid;gap:16px;
-}
-@media (min-width:560px){form.f{padding:32px}}
-.field{display:grid;gap:6px}
-.field label{font-weight:700;font-size:1rem}
-.field input,.field select,.field textarea{
-  font:inherit;font-size:1rem;color:#16120f;background:#fff8ec;border:2px solid #16120f;border-radius:14px;
-  padding:12px 14px;min-height:48px;width:100%;
-}
-.field textarea{min-height:140px;resize:vertical}
-.field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible{outline:3px solid #2335ff;outline-offset:2px}
-.req{color:#c42a00}
-form.f .btn{width:100%;background:#ff5a1f;color:#16120f;border-color:#16120f;box-shadow:4px 4px 0 #16120f}
-.note{font-size:1rem;color:#4a423b}
-.contact-side h3{font-size:1.4rem}
-.lien-he .socials a{border-color:currentColor}
-.lien-he .socials a:hover{background:#16120f;color:#dcff3a}
-
-/* ---------- Footer ---------- */
-footer{background:var(--fg);color:var(--bg);padding:48px 0 40px;overflow-x:clip}
-.foot-big{font-family:var(--display);font-weight:800;font-size:clamp(5rem,30vw,20rem);line-height:.8;letter-spacing:-.06em}
-.foot-row{display:grid;gap:12px;margin-top:28px}
-footer .socials a{border-color:var(--bg)}
-footer .socials a:hover{background:var(--bg);color:var(--fg)}
-
-/* ---------- Reveal (only with JS) ---------- */
-.js .reveal{opacity:0;transform:translateY(40px) rotate(var(--r,0deg));transition:opacity .8s cubic-bezier(.2,.8,.2,1), transform .9s cubic-bezier(.2,1.3,.4,1)}
-.js .reveal.in{opacity:1;transform:none}
-.js .stat.reveal.in:nth-child(1){transform:rotate(-2deg)}
-.js .stat.reveal.in:nth-child(2){transform:rotate(1.5deg) translateY(10px)}
-.js .stat.reveal.in:nth-child(3){transform:rotate(1.2deg)}
-.js .stat.reveal.in:nth-child(4){transform:rotate(-1.6deg) translateY(10px)}
-.js .stat.reveal:nth-child(2){transition-delay:.08s}
-.js .stat.reveal:nth-child(3){transition-delay:.16s}
-.js .stat.reveal:nth-child(4){transition-delay:.24s}
-.js .card--a.reveal.in{transform:rotate(-1.2deg)}
-.js .card--b.reveal.in{transform:rotate(1.4deg)}
-.js .skill.reveal.in:nth-child(1){transform:rotate(-1deg)}
-.js .skill.reveal.in:nth-child(2){transform:rotate(1.2deg)}
-.js .skill.reveal.in:nth-child(3){transform:rotate(.8deg)}
-.js .skill.reveal.in:nth-child(4){transform:rotate(-1.3deg)}
-
-/* ---------- Cursor follower (desktop, fine pointer) ---------- */
-.cursor{
-  position:fixed;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
-  background:var(--orange);border:2px solid var(--line);pointer-events:none;z-index:999;
-  transition:width .25s, height .25s, margin .25s, background .25s;will-change:transform;
-}
-.cursor.big{width:64px;height:64px;margin:-32px 0 0 -32px;background:var(--yellow);opacity:.75}
-@media not (pointer:fine){.cursor{display:none}}
-
-/* ---------- Reduced motion ---------- */
-@media (prefers-reduced-motion: reduce){
-  html{scroll-behavior:auto}
-  *,*::before,*::after{animation:none!important;transition:none!important}
-  .js .reveal,.js .hero h1 .w{opacity:1!important;transform:none!important}
-  .marquee{flex-wrap:wrap}
-  .marquee-track{flex-wrap:wrap;flex:1 1 100%}
-  .marquee-track[aria-hidden="true"]{display:none}
-  .marquee-track li{font-size:clamp(2rem,9vw,4.5rem)}
-  .band-row{transform:none!important}
-  .cursor{display:none!important}
+@media (prefers-reduced-motion:reduce){
+  .route button.next{animation:none;background:var(--yellow)}
+  .pxwin.pop{animation:none}
 }
 </style>
 </head>
 <body>
-<a class="skip" href="#main"><span lang="vi">Bỏ qua tới nội dung</span><span lang="en">Skip to content</span></a>
 
-<!-- 1. Thanh menu -->
+<svg id="city" role="application" aria-label="GMT City — isometric map. Use the route buttons below to visit each place."></svg>
+
 <header class="top">
-  <div class="wrap">
-    <a class="logo" href="#top" aria-label="GMT" data-aria-vi="GMT, về đầu trang" data-aria-en="GMT, back to top"><span>GMT</span></a>
-    <nav class="nav" aria-label="Điều hướng chính" data-aria-vi="Điều hướng chính" data-aria-en="Main navigation">
-      <ul>
-        <li><a href="#san-pham"><span lang="vi">Sản phẩm</span><span lang="en">Products</span></a></li>
-        <li><a href="#du-an"><span lang="vi">Dự án</span><span lang="en">Work</span></a></li>
-        <li><a href="#dich-vu"><span lang="vi">Dịch vụ</span><span lang="en">Services</span></a></li>
-        <li><a href="#ky-nang"><span lang="vi">Kỹ năng</span><span lang="en">Skills</span></a></li>
-      </ul>
-    </nav>
-    <div class="top-actions">
-      <details class="menu">
-        <summary><span class="bars" aria-hidden="true"></span><span class="menu-text">Menu</span></summary>
-        <nav class="menu-panel" aria-label="Điều hướng trên điện thoại" data-aria-vi="Điều hướng trên điện thoại" data-aria-en="Mobile navigation">
-          <ul>
-            <li><a href="#san-pham"><span lang="vi">Sản phẩm</span><span lang="en">Products</span></a></li>
-            <li><a href="#du-an"><span lang="vi">Dự án</span><span lang="en">Work</span></a></li>
-            <li><a href="#dich-vu"><span lang="vi">Dịch vụ</span><span lang="en">Services</span></a></li>
-            <li><a href="#ky-nang"><span lang="vi">Kỹ năng</span><span lang="en">Skills</span></a></li>
-          </ul>
-        </nav>
-      </details>
-      <button type="button" class="lang-btn" data-lang-toggle aria-label="Switch to English" data-aria-vi="Switch to English" data-aria-en="Chuyển sang tiếng Việt"><span lang="vi">EN</span><span lang="en">VI</span></button>
-      <a class="btn btn--main" href="#lien-he"><span lang="vi">Liên hệ</span><span lang="en">Contact</span></a>
-    </div>
-  </div>
+  <a class="logo" href="./" aria-label="GMT City">
+    <img src="avatar.jpg" alt="" width="34" height="34">
+    <span><b>GMT CITY</b><small><span lang="en">Building products for designers</span><span lang="vi">Xây sản phẩm cho designer</span></small></span>
+  </a>
+  <span class="sp"></span>
+  <button class="pbtn" type="button" id="b-sound" aria-pressed="true" aria-label="Sound"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 6h3l4-3v10l-4-3H2z"/><path class="w" fill="none" stroke="currentColor" stroke-width="1.6" d="M11 5.5q1.5 2.5 0 5M12.8 3.8q3 4.2 0 8.4"/></svg></button>
+  <button class="pbtn" type="button" id="b-lang"><span lang="en">VI</span><span lang="vi">EN</span></button>
 </header>
 
-<main id="main">
+<div class="hint" id="hint"><span lang="en">Click a place to walk there · start at ▶ 01</span><span lang="vi">Bấm vào một khu để đi tới · bắt đầu từ ▶ 01</span></div>
 
-<!-- 2. Mở đầu -->
-<section class="hero" id="top" aria-labelledby="hero-title">
-  <div class="wrap hero-stage">
-    <div class="sticker sticker--star spin" aria-hidden="true"><b>GMT ✺</b></div>
-    <p class="eyebrow"><span>Motion Designer</span><span class="sr-only"> · </span><span>Solo Founder</span></p>
-    <h1 id="hero-title" data-hero><span lang="vi"><span class="w">Tôi</span> <span class="w">xây</span> <span class="w">sản</span> <span class="w">phẩm</span> <span class="w">cho</span> <span class="w"><span class="hl tilt">designer.</span></span></span><span lang="en"><span class="w">I</span> <span class="w">build</span> <span class="w">products</span> <span class="w">for</span> <span class="w"><span class="hl tilt">designers.</span></span></span></h1>
-    <p class="hero-lead"><span lang="vi">10 năm làm motion design, 2 năm xây SaaS cho macOS và Windows. Tôi tạo ra Dezi Gallery và đang xây Better Finder: những công cụ, cảm hứng và tài nguyên dành cho người làm sáng tạo.</span><span lang="en">10 years in motion design, 2 years building SaaS for macOS and Windows. I created Dezi Gallery and I’m now building Better Finder: tools, inspiration and resources for creative people.</span></p>
-    <div class="ctas">
-      <a class="btn btn--main" href="https://x.com/gmttuts" target="_blank" rel="noopener"><span lang="vi">Theo dõi tôi</span><span lang="en">Follow me</span></a>
-      <a class="btn btn--yellow" href="#lien-he"><span lang="vi">Thuê tôi làm motion</span><span lang="en">Hire me for motion</span></a>
-      <a class="btn" href="https://dezi.gallery/" target="_blank" rel="noopener"><span lang="vi">Khám phá Dezi Gallery</span><span lang="en">Explore Dezi Gallery</span> ↗</a>
-    </div>
-    <ul class="socials" aria-label="Mạng xã hội" data-aria-vi="Mạng xã hội" data-aria-en="Social media">
-      <li><a href="https://x.com/gmttuts" target="_blank" rel="noopener">X</a></li>
-      <li><a href="https://www.threads.com/@nguyentuyen_gmt" target="_blank" rel="noopener">Threads</a></li>
-      <li><a href="https://www.instagram.com/nguyentuyen_gmt/" target="_blank" rel="noopener">Instagram</a></li>
-      <li><a href="https://www.facebook.com/GhostMastert/" target="_blank" rel="noopener">Facebook</a></li>
-      <li><a href="https://www.linkedin.com/in/gmttuts" target="_blank" rel="noopener">LinkedIn</a></li>
-    </ul>
-  </div>
-</section>
-
-<!-- 3. Con số -->
-<section class="stats" aria-label="Con số" data-aria-vi="Con số" data-aria-en="Numbers">
-  <div class="wrap">
-    <ul class="stat-grid">
-      <li class="stat reveal"><strong>10+</strong><span><span lang="vi">năm làm motion design</span><span lang="en">years in motion design</span></span></li>
-      <li class="stat reveal"><strong>100+</strong><span><span lang="vi">khách hàng</span><span lang="en">clients</span></span></li>
-      <li class="stat reveal"><strong><span lang="vi">62 triệu</span><span lang="en">62M</span></strong><span><span lang="vi">lượt xem MV Kimmese</span><span lang="en">views on the Kimmese music video</span></span></li>
-      <li class="stat reveal"><strong><span lang="vi">10.000</span><span lang="en">10K</span></strong><span><span lang="vi">lượt truy cập Dezi Gallery mỗi tháng</span><span lang="en">monthly visits to Dezi Gallery</span></span></li>
-    </ul>
-  </div>
-</section>
-
-<!-- 4. Thương hiệu -->
-<section class="brands" aria-labelledby="brands-title">
-  <div class="wrap"><h2 id="brands-title"><span lang="vi">Đã đồng hành cùng</span><span lang="en">Worked with</span></h2></div>
-  <div class="marquee">
-    <ul class="marquee-track">
-      <li>Pepsi</li><li>CGV</li><li>Akamai</li><li>MoMo</li><li>Nabati</li><li>Zalo</li><li>AllyBee</li><li>EasyRx</li><li>KGC</li>
-    </ul>
-    <ul class="marquee-track" aria-hidden="true">
-      <li>Pepsi</li><li>CGV</li><li>Akamai</li><li>MoMo</li><li>Nabati</li><li>Zalo</li><li>AllyBee</li><li>EasyRx</li><li>KGC</li>
-    </ul>
-  </div>
-</section>
-
-<!-- 5. Sản phẩm -->
-<section class="sec" id="san-pham" aria-labelledby="sp-title">
-  <span class="big-num" aria-hidden="true" data-par="0.15">01</span>
-  <div class="wrap">
-    <p class="label"><span lang="vi">Sản phẩm</span><span lang="en">Products</span></p>
-    <h2 class="h2 reveal" id="sp-title"><span lang="vi">Công cụ và cảm hứng cho người làm sáng tạo.</span><span lang="en">Tools and inspiration for creative people.</span></h2>
-    <p class="lead reveal"><span lang="vi">Là solo founder, tôi xây website và ứng dụng cho macOS và Windows, phần lớn dành cho designer và motion designer.</span><span lang="en">As a solo founder, I build websites and apps for macOS and Windows, mostly for designers and motion designers.</span></p>
-
-    <div class="prod-grid">
-      <article class="card card--a reveal" aria-labelledby="dezi-title">
-        <span class="status status--live"><span lang="vi">Đang hoạt động</span><span lang="en">Live</span></span>
-        <h3 id="dezi-title">Dezi Gallery</h3>
-        <p class="sub">The Design Inspiration Hub</p>
-        <ul class="facts">
-          <li><span lang="vi">Thư viện miễn phí tổng hợp các website truyền cảm hứng thiết kế.</span><span lang="en">A free directory of websites that inspire great design.</span></li>
-          <li><span lang="vi">Dành cho designer, motion designer và creator.</span><span lang="en">For designers, motion designers and creators.</span></li>
-          <li><span lang="vi">Vai trò của tôi: ý tưởng, lên kế hoạch, viết nội dung, marketing.</span><span lang="en">My role: idea, planning, writing, marketing.</span></li>
-        </ul>
-        <p class="card-num"><strong><span lang="vi">10.000</span><span lang="en">10K</span></strong> <span><span lang="vi">lượt truy cập mỗi tháng</span><span lang="en">visits per month</span></span></p>
-        <a class="btn btn--main" href="https://dezi.gallery/" target="_blank" rel="noopener"><span lang="vi">Truy cập Dezi Gallery</span><span lang="en">Visit Dezi Gallery</span> ↗</a>
-      </article>
-
-      <article class="card card--b reveal" aria-labelledby="bf-title">
-        <span class="status status--dev"><span lang="vi">Đang phát triển</span><span lang="en">In progress</span></span>
-        <h3 id="bf-title">Better Finder</h3>
-        <p class="sub"><span lang="vi">Thay thế Finder cho dân multimedia</span><span lang="en">A Finder replacement for multimedia people</span></p>
-        <ul class="facts">
-          <li><span lang="vi">Ứng dụng quản lý file dành cho người làm việc hằng ngày với video, hình ảnh và file thiết kế.</span><span lang="en">A file manager for people who work with video, images and design files every day.</span></li>
-        </ul>
-        <a class="btn btn--yellow" href="https://x.com/gmttuts" target="_blank" rel="noopener"><span lang="vi">Theo dõi tiến độ</span><span lang="en">Follow the progress</span> →</a>
-      </article>
-    </div>
-  </div>
-</section>
-
-<!-- Dải chữ chuyển động theo cuộn (trang trí) -->
-<div class="band" aria-hidden="true">
-  <div class="band-row" data-scrollx="1">Character Animation ✺ Rigging ✺ Compositing ✺ After Effects ✺ Character Animation ✺ Rigging ✺</div>
-  <div class="band-row band-row--out" data-scrollx="-1">Rive ✺ Lottie ✺ Figma Motion ✺ AI Motion ✺ Rive ✺ Lottie ✺ Figma Motion ✺ AI Motion ✺</div>
+<div class="zoom" role="group" aria-label="Zoom">
+  <button class="pbtn" type="button" id="z-in" aria-label="Zoom in">+</button>
+  <button class="pbtn" type="button" id="z-out" aria-label="Zoom out">−</button>
+  <button class="pbtn" type="button" id="z-fit" aria-label="Show whole city"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4"/></svg></button>
+  <button class="pbtn follow" type="button" id="z-follow" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.8" fill="currentColor"/><path stroke="currentColor" stroke-width="2" d="M8 0v3M8 13v3M0 8h3M13 8h3"/></svg><span lang="en">FOLLOW</span><span lang="vi">BÁM</span></button>
 </div>
 
-<!-- 6. Dự án motion -->
-<section class="sec" id="du-an" aria-labelledby="da-title">
-  <span class="big-num" aria-hidden="true" data-par="0.15">02</span>
-  <div class="wrap">
-    <p class="label"><span lang="vi">Dự án motion</span><span lang="en">Motion work</span></p>
-    <h2 class="h2 reveal" id="da-title"><span lang="vi">10 năm làm mọi thứ chuyển động.</span><span lang="en">10 years of making things move.</span></h2>
-    <p class="lead reveal"><span lang="vi">Một số dự án tiêu biểu. Tôi làm cùng team và phụ trách character animation, rigging và compositing.</span><span lang="en">Selected projects. I worked as part of the team, handling character animation, rigging and compositing.</span></p>
+<nav class="route" aria-label="Route">
+  <ol id="route"></ol>
+</nav>
 
-    <div class="proj-list">
-      <article class="proj reveal" aria-labelledby="kim-title">
-        <div class="video">
-          <button type="button" class="yt" data-id="GjSi4OxJORY" data-title="Kimmese – Loving You Sunny" aria-label="Phát video Kimmese – Loving You Sunny" data-aria-vi="Phát video Kimmese – Loving You Sunny" data-aria-en="Play video: Kimmese – Loving You Sunny">
-            <img src="https://i.ytimg.com/vi/GjSi4OxJORY/hqdefault.jpg" alt="" width="480" height="360" loading="lazy" decoding="async">
-            <span class="play" aria-hidden="true"></span>
-          </button>
-        </div>
-        <h3 id="kim-title">Kimmese – Loving You Sunny</h3>
-        <p class="sub"><span lang="vi">MV</span><span lang="en">Music video</span> · ft. Đen · Prod. by Touliver</p>
-        <p class="views"><strong><span lang="vi">62 triệu</span><span lang="en">62M</span></strong> <span><span lang="vi">lượt xem trên YouTube</span><span lang="en">views on YouTube</span></span></p>
-        <ul class="tags" aria-label="Phụ trách" data-aria-vi="Phụ trách" data-aria-en="My part">
-          <li>Character Animation</li><li>Rigging</li><li>Compositing</li><li>After Effects</li>
-        </ul>
-      </article>
-
-      <article class="proj reveal" aria-labelledby="cgv-title">
-        <div class="video">
-          <button type="button" class="yt" data-id="oT9zkvBXggY" data-title="CGV – House Rules" aria-label="Phát video CGV – House Rules" data-aria-vi="Phát video CGV – House Rules" data-aria-en="Play video: CGV – House Rules">
-            <img src="https://i.ytimg.com/vi/oT9zkvBXggY/hqdefault.jpg" alt="" width="480" height="360" loading="lazy" decoding="async">
-            <span class="play" aria-hidden="true"></span>
-          </button>
-        </div>
-        <h3 id="cgv-title">CGV – House Rules</h3>
-        <p class="sub"><span lang="vi">Video quy định rạp chiếu</span><span lang="en">Cinema etiquette film</span> · CGV Cinemas</p>
-        <p class="views"><strong><span lang="vi">22.000</span><span lang="en">22K</span></strong> <span><span lang="vi">lượt xem trên YouTube</span><span lang="en">views on YouTube</span></span></p>
-        <ul class="tags" aria-label="Phụ trách" data-aria-vi="Phụ trách" data-aria-en="My part">
-          <li>Character Animation</li><li>Rigging</li><li>Compositing</li><li>After Effects</li>
-        </ul>
-      </article>
-    </div>
+<section class="pxwin" id="panel" role="dialog" aria-labelledby="px-title" hidden>
+  <div class="pxbar"><span id="px-file">ABOUT.TXT</span><span class="stripes" aria-hidden="true"></span><button type="button" id="px-close" aria-label="Close">✕</button></div>
+  <div class="pxbody" id="px-body"></div>
+  <div class="pxfoot">
+    <button type="button" id="px-prev" aria-label="Previous place">◀</button>
+    <button type="button" class="nx" id="px-next"><span><span lang="en">NEXT</span><span lang="vi">TIẾP</span></span><span class="nm" id="px-next-name"></span><span>▶</span></button>
   </div>
 </section>
 
-<!-- 7. Dịch vụ -->
-<section class="sec dich-vu" id="dich-vu" aria-labelledby="dv-title">
-  <span class="big-num" aria-hidden="true" data-par="0.15">03</span>
-  <div class="wrap">
-    <p class="label"><span lang="vi">Dịch vụ</span><span lang="en">Services</span></p>
-    <h2 class="h2 reveal" id="dv-title"><span lang="vi">Motion giúp giải thích, dẫn dắt và được ghi nhớ.</span><span lang="en">Motion that explains, guides and sticks.</span></h2>
-    <p class="lead reveal"><span lang="vi">Những việc tôi làm nhiều nhất cho hơn 100 khách hàng, từ Pepsi đến Zalo.</span><span lang="en">What I’ve delivered most for 100+ clients, from Pepsi to Zalo.</span></p>
-    <ol class="svc">
-      <li class="reveal"><h3>Video Explainer</h3><p><span lang="vi">Biến sản phẩm hoặc ý tưởng phức tạp thành câu chuyện ngắn, dễ hiểu.</span><span lang="en">Turn a complex product or idea into a short, clear story.</span></p></li>
-      <li class="reveal"><h3>UI Motion</h3><p><span lang="vi">Chuyển động và tương tác cho app, website, xuất bằng Rive hoặc Lottie.</span><span lang="en">Motion and interactions for apps and websites, delivered in Rive or Lottie.</span></p></li>
-      <li class="reveal"><h3>Logo Animation</h3><p><span lang="vi">Làm logo thương hiệu chuyển động cho intro, quảng cáo và mạng xã hội.</span><span lang="en">Bring your logo to life for intros, ads and social media.</span></p></li>
-    </ol>
-  </div>
-</section>
+<!-- Zone content (cloned into the pixel window) -->
+<div id="content" hidden>
 
-<!-- 8. Kỹ năng & công cụ -->
-<section class="sec" id="ky-nang" aria-labelledby="kn-title">
-  <span class="big-num" aria-hidden="true" data-par="0.15">04</span>
-  <div class="wrap">
-    <p class="label"><span lang="vi">Kỹ năng &amp; công cụ</span><span lang="en">Skills &amp; tools</span></p>
-    <h2 class="h2 reveal" id="kn-title"><span lang="vi">Từ keyframe đến sản phẩm hoàn chỉnh.</span><span lang="en">From keyframes to finished products.</span></h2>
-    <div class="skill-grid">
-      <div class="skill reveal">
-        <h3>Motion</h3>
-        <ul class="chips"><li>After Effects</li><li>Rive</li><li>Lottie</li><li>Figma Motion</li><li>AI Motion</li><li>Character Animation</li><li>Rigging</li><li>Compositing</li></ul>
-      </div>
-      <div class="skill reveal">
-        <h3><span lang="vi">Thiết kế</span><span lang="en">Design</span></h3>
-        <ul class="chips"><li>Figma</li><li>Illustrator</li><li>Photoshop</li></ul>
-      </div>
-      <div class="skill reveal">
-        <h3><span lang="vi">Xây sản phẩm</span><span lang="en">Building products</span></h3>
-        <ul class="chips"><li>Vibe Coding</li><li>No-code</li><li>Claude Code</li></ul>
-      </div>
-      <div class="skill reveal">
-        <h3><span lang="vi">Kinh doanh</span><span lang="en">Business</span></h3>
-        <ul class="chips"><li>Marketing</li><li><span lang="vi">Quản lý dự án</span><span lang="en">Project management</span></li><li><span lang="vi">Lên kế hoạch</span><span lang="en">Planning</span></li><li><span lang="vi">Viết nội dung</span><span lang="en">Writing</span></li></ul>
-      </div>
+  <article data-zone="0">
+    <span class="kick">01 · HOME</span>
+    <div class="me">
+      <img src="avatar.jpg" alt="GMT" width="76" height="76">
+      <div><h2 id="px-title">GMT</h2>
+        <p style="margin:0"><span lang="en">Motion Designer &amp; Solo Founder</span><span lang="vi">Motion Designer &amp; Solo Founder</span></p></div>
     </div>
-  </div>
-</section>
+    <p class="lead"><span lang="en">Building products for designers.</span><span lang="vi">Xây dựng sản phẩm cho designer.</span></p>
+    <div class="rows">
+      <div><span>Motion Designer</span><b><span lang="en">10 years</span><span lang="vi">10 năm</span></b></div>
+      <div><span>Solo Founder</span><b><span lang="en">2 years</span><span lang="vi">2 năm</span></b></div>
+    </div>
+    <p><span lang="en">For the last two years I've been building SaaS on my own: websites and apps for macOS and Windows, including tools for motion designers.</span><span lang="vi">2 năm nay tôi tự xây sản phẩm SaaS: website và ứng dụng cho macOS, Windows, trong đó có các công cụ dành cho motion designer.</span></p>
+    <p><b><span lang="en">Now building:</span><span lang="vi">Đang làm:</span></b> Better Finder — <span lang="en">a Finder replacement made for multimedia people.</span><span lang="vi">ứng dụng thay thế Finder, dành cho dân làm multimedia.</span></p>
+  </article>
 
-<!-- 9. Liên hệ -->
-<section class="sec lien-he" id="lien-he" aria-labelledby="lh-title">
-  <span class="big-num" aria-hidden="true" data-par="0.15">05</span>
-  <div class="wrap">
-    <p class="label"><span lang="vi">Liên hệ</span><span lang="en">Contact</span></p>
-    <h2 class="h2 reveal" id="lh-title"><span lang="vi">Bạn có dự án motion cần làm?</span><span lang="en">Have a motion project in mind?</span></h2>
-    <p class="lead reveal"><span lang="vi">Video explainer, UI motion hay logo animation. Kể cho tôi nghe nhé.</span><span lang="en">Explainer videos, UI motion or logo animation. Tell me about it.</span></p>
-    <a class="mail-big" href="mailto:gmttuts@gmail.com">gmttuts@gmail.com</a>
+  <article data-zone="1">
+    <span class="kick">02 · STATS</span>
+    <h2><span lang="en">Stats Tower</span><span lang="vi">Tháp số liệu</span></h2>
+    <div class="big">
+      <div><b>100+</b><span lang="en">motion clients</span><span lang="vi">khách hàng motion</span></div>
+      <div><b>10</b><span lang="en">years of motion design</span><span lang="vi">năm làm motion</span></div>
+      <div><b>62M</b><span lang="en">views — Kimmese “Loving You”</span><span lang="vi">lượt xem — Kimmese “Loving You”</span></div>
+      <div><b>10K</b><span lang="en">visits a month (approx.) — Dezi Gallery</span><span lang="vi">khoảng 10.000 lượt truy cập mỗi tháng — Dezi Gallery</span></div>
+    </div>
+    <h3><span lang="en">Brands I've animated for</span><span lang="vi">Thương hiệu đã làm cùng</span></h3>
+    <ul class="chips"><li>Pepsi</li><li>CGV</li><li>Akamai</li><li>MoMo</li><li>Nabati</li><li>AllyBee</li><li>EasyRx</li><li>KGC</li><li>Zalo</li></ul>
+    <p><span lang="en">…and dozens more.</span><span lang="vi">…và hàng chục thương hiệu khác.</span></p>
+  </article>
 
-    <div class="contact-grid">
-      <form class="f" id="contact-form" action="mailto:gmttuts@gmail.com" method="post" enctype="text/plain">
-        <div class="field">
-          <label for="f-name"><span lang="vi">Tên của bạn</span><span lang="en">Your name</span> <span class="req" aria-hidden="true">*</span></label>
-          <input id="f-name" name="name" type="text" autocomplete="name" required>
-        </div>
-        <div class="field">
-          <label for="f-email">Email <span class="req" aria-hidden="true">*</span></label>
-          <input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" required>
-        </div>
-        <div class="field">
-          <label for="f-type"><span lang="vi">Loại dự án</span><span lang="en">Project type</span></label>
-          <select id="f-type" name="type">
-            <option>Video Explainer</option>
-            <option>UI Motion</option>
-            <option>Logo Animation</option>
-            <option value="Khác" data-vi="Khác" data-en="Other">Khác</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="f-desc"><span lang="vi">Mô tả dự án</span><span lang="en">About your project</span> <span class="req" aria-hidden="true">*</span></label>
-          <textarea id="f-desc" name="desc" required></textarea>
-        </div>
-        <button class="btn" type="submit"><span lang="vi">Gửi tin nhắn</span><span lang="en">Send message</span> →</button>
-        <p class="note"><span lang="vi">Nút này sẽ mở ứng dụng email của bạn với nội dung đã điền sẵn.</span><span lang="en">This opens your email app with the message ready to send.</span></p>
-      </form>
+  <article data-zone="2">
+    <span class="kick">03 · PROJECTS</span>
+    <h2><span lang="en">The Cinema</span><span lang="vi">Rạp phim</span></h2>
+    <div class="card">
+      <h3>Kimmese – Loving You</h3>
+      <div class="res">62M <small style="font-size:16px"><span lang="en">views</span><span lang="vi">lượt xem</span></small></div>
+      <dl>
+        <dt><span lang="en">Role</span><span lang="vi">Vai trò</span></dt><dd>Motion Designer</dd>
+        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Character Animation, Rigging, Compositing <span lang="en">(with a team)</span><span lang="vi">(làm cùng team)</span></dd>
+        <dt><span lang="en">Tool</span><span lang="vi">Công cụ</span></dt><dd>After Effects</dd>
+      </dl>
+      <a class="btn" href="https://www.youtube.com/watch?v=GjSi4OxJORY" target="_blank" rel="noopener">▶ YOUTUBE ↗</a>
+    </div>
+    <div class="card">
+      <h3>CGV – House Rules</h3>
+      <div class="res"><span lang="en">22,000</span><span lang="vi">22.000</span> <small style="font-size:16px"><span lang="en">views</span><span lang="vi">lượt xem</span></small></div>
+      <dl>
+        <dt><span lang="en">Role</span><span lang="vi">Vai trò</span></dt><dd>Motion Designer</dd>
+        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Character Animation, Rigging, Compositing <span lang="en">(with a team)</span><span lang="vi">(làm cùng team)</span></dd>
+        <dt><span lang="en">Tool</span><span lang="vi">Công cụ</span></dt><dd>After Effects</dd>
+      </dl>
+      <a class="btn" href="https://www.youtube.com/watch?v=oT9zkvBXggY" target="_blank" rel="noopener">▶ YOUTUBE ↗</a>
+    </div>
+  </article>
 
-      <div class="contact-side">
-        <ul class="socials" aria-label="Mạng xã hội" data-aria-vi="Mạng xã hội" data-aria-en="Social media">
-          <li><a href="https://x.com/gmttuts" target="_blank" rel="noopener">X</a></li>
-          <li><a href="https://www.threads.com/@nguyentuyen_gmt" target="_blank" rel="noopener">Threads</a></li>
-          <li><a href="https://www.instagram.com/nguyentuyen_gmt/" target="_blank" rel="noopener">Instagram</a></li>
-          <li><a href="https://www.facebook.com/GhostMastert/" target="_blank" rel="noopener">Facebook</a></li>
-          <li><a href="https://www.linkedin.com/in/gmttuts" target="_blank" rel="noopener">LinkedIn</a></li>
-        </ul>
+  <article data-zone="3">
+    <span class="kick">04 · PRODUCT</span>
+    <h2>Dezi Gallery</h2>
+    <p class="lead" style="font-size:22px">The Design Inspiration Hub</p>
+    <p><span lang="en">A free design directory collecting websites that inspire — for designers, motion designers and creators.</span><span lang="vi">Design directory miễn phí, tổng hợp các website truyền cảm hứng thiết kế — dành cho designer, motion designer và creator.</span></p>
+    <div class="big">
+      <div><b>10K</b><span lang="en">visits a month (approx.)</span><span lang="vi">khoảng 10.000 lượt truy cập mỗi tháng</span></div>
+      <div><b><span lang="en">Free</span><span lang="vi">Miễn phí</span></b><span lang="en">for everyone</span><span lang="vi">miễn phí cho mọi người</span></div>
+    </div>
+    <div class="rows">
+      <div><span><span lang="en">Role</span><span lang="vi">Vai trò</span></span><b>Founder</b></div>
+      <div><span><span lang="en">I did</span><span lang="vi">Tôi làm</span></span><b><span lang="en">idea, planning, writing, marketing</span><span lang="vi">ý tưởng, planning, writing, marketing</span></b></div>
+    </div>
+    <p style="font-size:13px"><span lang="en">UI and code by friends, hand-written (no no-code).</span><span lang="vi">Giao diện và code do bạn bè hỗ trợ, viết code thuần (không dùng no-code).</span></p>
+    <a class="btn" href="https://dezi.gallery/" target="_blank" rel="noopener">DEZI.GALLERY ↗</a>
+  </article>
+
+  <article data-zone="4">
+    <span class="kick">05 · SKILLS</span>
+    <h2><span lang="en">The Workshop</span><span lang="vi">Xưởng kỹ năng</span></h2>
+    <p><span lang="en">The skill I most want to be known for:</span><span lang="vi">Kỹ năng tôi muốn được nhớ đến nhất:</span> <b><span lang="en">building products for designers.</span><span lang="vi">xây dựng sản phẩm cho designer.</span></b></p>
+    <h3>Motion</h3>
+    <ul class="chips keys"><li>After Effects</li><li>Rive</li><li>Lottie</li><li>Figma Motion</li><li>AI Motion</li><li>Character Animation</li><li>Rigging</li><li>Compositing</li></ul>
+    <h3><span lang="en">Design</span><span lang="vi">Thiết kế</span></h3>
+    <ul class="chips keys"><li>Figma</li><li>Illustrator</li><li>Photoshop</li></ul>
+    <h3><span lang="en">Building products</span><span lang="vi">Xây sản phẩm</span></h3>
+    <ul class="chips keys"><li>Vibe Coding</li><li>No-code</li><li>Claude Code</li></ul>
+    <h3><span lang="en">Business</span><span lang="vi">Kinh doanh</span></h3>
+    <ul class="chips keys"><li>Marketing</li><li><span lang="en">Project management</span><span lang="vi">Quản lý dự án</span></li><li>Planning</li><li>Writing</li></ul>
+  </article>
+
+  <article data-zone="5">
+    <span class="kick">06 · SERVICES</span>
+    <h2><span lang="en">Motion Studio</span><span lang="vi">Xưởng motion</span></h2>
+    <p><span lang="en">What brands hire me for most:</span><span lang="vi">Những việc các thương hiệu thuê tôi nhiều nhất:</span></p>
+    <div class="svc">
+      <div><i style="background:var(--orange)">▶</i><span><b>Explainer video</b><span lang="en">Stories that explain a product.</span><span lang="vi">Video kể chuyện, giải thích sản phẩm.</span></span></div>
+      <div><i style="background:var(--green)">▤</i><span><b>UI motion</b><span lang="en">Interfaces that move with purpose.</span><span lang="vi">Chuyển động cho giao diện.</span></span></div>
+      <div><i style="background:var(--yellow)">★</i><span><b>Logo animation</b><span lang="en">Logos that come alive.</span><span lang="vi">Làm logo chuyển động.</span></span></div>
+    </div>
+    <button class="btn" type="button" data-go="6"><span lang="en">HIRE ME FOR MOTION →</span><span lang="vi">THUÊ LÀM MOTION →</span></button>
+  </article>
+
+  <article data-zone="6">
+    <span class="kick">07 · CONTACT</span>
+    <h2><span lang="en">Post Office</span><span lang="vi">Bưu điện</span></h2>
+    <h3><span lang="en">Hire me for motion</span><span lang="vi">Thuê làm motion</span></h3>
+    <a class="mail" href="mailto:gmttuts@gmail.com">gmttuts@gmail.com</a>
+    <form class="f" data-mailto>
+      <div class="two">
+        <label><span><span lang="en">NAME</span><span lang="vi">TÊN</span></span><input name="name" autocomplete="name" required></label>
+        <label>EMAIL<input name="email" type="email" autocomplete="email" required></label>
       </div>
+      <label><span><span lang="en">MESSAGE</span><span lang="vi">LỜI NHẮN</span></span><textarea name="msg" required></textarea></label>
+      <button class="btn send" type="submit"><span lang="en">SEND ✉</span><span lang="vi">GỬI ✉</span></button>
+    </form>
+    <h3 style="margin-top:22px"><span lang="en">Follow me</span><span lang="vi">Theo dõi tôi</span></h3>
+    <div class="soc">
+      <a href="https://x.com/gmttuts" target="_blank" rel="noopener">X <span>↗</span></a>
+      <a href="https://www.threads.com/@nguyentuyen_gmt" target="_blank" rel="noopener">THREADS <span>↗</span></a>
+      <a href="https://www.facebook.com/GhostMastert/" target="_blank" rel="noopener">FACEBOOK <span>↗</span></a>
+      <a href="https://www.instagram.com/nguyentuyen_gmt/" target="_blank" rel="noopener">INSTAGRAM <span>↗</span></a>
+      <a href="https://www.linkedin.com/in/gmttuts" target="_blank" rel="noopener">LINKEDIN <span>↗</span></a>
+      <a href="https://dezi.gallery/" target="_blank" rel="noopener">DEZI <span>↗</span></a>
     </div>
-  </div>
-</section>
+  </article>
 
-</main>
+</div>
 
-<!-- 10. Chân trang -->
-<footer>
-  <div class="wrap">
-    <p class="foot-big" aria-hidden="true">GMT</p>
-    <div class="foot-row">
-      <p>© 2026 GMT</p>
-      <p>Motion Designer · Solo Founder · <span lang="vi">Xây sản phẩm cho designer</span><span lang="en">Building products for designers</span></p>
-      <ul class="socials" aria-label="Mạng xã hội" data-aria-vi="Mạng xã hội" data-aria-en="Social media">
-        <li><a href="https://x.com/gmttuts" target="_blank" rel="noopener">X</a></li>
-        <li><a href="https://www.threads.com/@nguyentuyen_gmt" target="_blank" rel="noopener">Threads</a></li>
-        <li><a href="https://www.instagram.com/nguyentuyen_gmt/" target="_blank" rel="noopener">Instagram</a></li>
-        <li><a href="https://www.facebook.com/GhostMastert/" target="_blank" rel="noopener">Facebook</a></li>
-        <li><a href="https://www.linkedin.com/in/gmttuts" target="_blank" rel="noopener">LinkedIn</a></li>
-      </ul>
-    </div>
-  </div>
-</footer>
-
-<script>
-(function(){
-  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  /* Language: VI / EN, remembered per visitor */
-  var root = document.documentElement;
-  var TITLES = { vi: 'GMT — Xây sản phẩm cho designer', en: 'GMT — Building products for designers' };
-  function setLang(lang){
-    root.lang = lang;
-    root.dataset.lang = lang;
-    document.title = TITLES[lang];
-    document.querySelectorAll('[data-aria-' + lang + ']').forEach(function(el){
-      el.setAttribute('aria-label', el.getAttribute('data-aria-' + lang));
-    });
-    document.querySelectorAll('option[data-' + lang + ']').forEach(function(o){
-      o.textContent = o.getAttribute('data-' + lang);
-    });
-    try { localStorage.setItem('lang', lang); } catch (e) {}
-  }
-  setLang(root.dataset.lang === 'en' ? 'en' : 'vi');
-  document.querySelectorAll('[data-lang-toggle]').forEach(function(b){
-    b.addEventListener('click', function(){ setLang(root.dataset.lang === 'vi' ? 'en' : 'vi'); });
-  });
-
-  /* Close compact menu after choosing a link */
-  var menu = document.querySelector('.menu');
-  if (menu) {
-    menu.addEventListener('click', function(e){ if (e.target.closest('a')) menu.removeAttribute('open'); });
-    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && menu.open) { menu.removeAttribute('open'); menu.querySelector('summary').focus(); } });
-    document.addEventListener('click', function(e){ if (menu.open && !menu.contains(e.target)) menu.removeAttribute('open'); });
-  }
-
-  /* YouTube: load iframe only on click */
-  document.querySelectorAll('.yt').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var f = document.createElement('iframe');
-      f.src = 'https://www.youtube-nocookie.com/embed/' + btn.dataset.id + '?autoplay=1';
-      f.title = btn.dataset.title;
-      f.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-      f.allowFullscreen = true;
-      btn.replaceWith(f);
-      f.focus();
-    });
-  });
-
-  /* Contact form -> mailto */
-  var form = document.getElementById('contact-form');
-  form.addEventListener('submit', function(e){
-    e.preventDefault();
-    if (!form.reportValidity()) return;
-    var el = form.elements;
-    var name = el.namedItem('name').value.trim();
-    var email = el.namedItem('email').value.trim();
-    var type = el.namedItem('type').value;
-    var desc = el.namedItem('desc').value.trim();
-    var subject = '[' + type + '] ' + name;
-    var body = desc + '\n\n— ' + name + ' (' + email + ')';
-    window.location.href = 'mailto:gmttuts@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-  });
-
-  /* Reveal on scroll */
-  var reveals = document.querySelectorAll('.reveal');
-  if (reduce || !('IntersectionObserver' in window)) {
-    reveals.forEach(function(el){ el.classList.add('in'); });
-  } else {
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(en){
-        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
-      });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
-    reveals.forEach(function(el){ io.observe(el); });
-  }
-
-  if (reduce) return;
-
-  /* Scroll-linked motion: parallax + horizontal kinetic band */
-  var par = Array.prototype.slice.call(document.querySelectorAll('[data-par]'));
-  var bands = Array.prototype.slice.call(document.querySelectorAll('[data-scrollx]'));
-  var hero = document.querySelector('[data-hero]');
-  var ticking = false;
-  function update(){
-    ticking = false;
-    var vh = window.innerHeight;
-    var sy = window.scrollY;
-    if (hero && sy < vh * 1.2) {
-      var k = Math.min(sy / vh, 1);
-      hero.style.transform = 'translate3d(' + (-k * 6).toFixed(2) + '%,0,0) scale(' + (1 - k * 0.08).toFixed(3) + ')';
-    }
-    par.forEach(function(el){
-      var r = el.parentElement.getBoundingClientRect();
-      if (r.bottom < 0 || r.top > vh) return;
-      var d = (r.top + r.height / 2 - vh / 2) * parseFloat(el.dataset.par);
-      el.style.transform = 'translate3d(0,' + d.toFixed(1) + 'px,0)';
-    });
-    bands.forEach(function(el){
-      var r = el.getBoundingClientRect();
-      if (r.bottom < -200 || r.top > vh + 200) return;
-      var p = (vh - r.top) / (vh + r.height); /* 0..1 while passing */
-      var dir = parseFloat(el.dataset.scrollx);
-      var max = Math.max(0, el.scrollWidth - el.parentElement.clientWidth);
-      var x = dir > 0 ? -p * max : -(1 - p) * max;
-      el.style.transform = 'translate3d(' + x.toFixed(1) + 'px,0,0)';
-    });
-  }
-  function onScroll(){ if (!ticking) { ticking = true; requestAnimationFrame(update); } }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll, { passive: true });
-  update();
-
-  /* Cursor follower: desktop with fine pointer only */
-  if (window.matchMedia('(pointer: fine)').matches) {
-    var c = document.createElement('div');
-    c.className = 'cursor';
-    c.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(c);
-    var mx = -100, my = -100, cx = -100, cy = -100, running = false;
-    function loop(){
-      cx += (mx - cx) * 0.2; cy += (my - cy) * 0.2;
-      c.style.transform = 'translate3d(' + cx.toFixed(1) + 'px,' + cy.toFixed(1) + 'px,0)';
-      if (Math.abs(mx - cx) > 0.1 || Math.abs(my - cy) > 0.1) requestAnimationFrame(loop); else running = false;
-    }
-    window.addEventListener('pointermove', function(e){
-      mx = e.clientX; my = e.clientY;
-      if (!running) { running = true; requestAnimationFrame(loop); }
-    }, { passive: true });
-    document.addEventListener('pointerover', function(e){
-      c.classList.toggle('big', !!e.target.closest('a, button, summary, input, select, textarea'));
-    }, { passive: true });
-    document.addEventListener('pointerleave', function(){ mx = my = -100; });
-  }
-})();
-</script>
+<script src="city.js"></script>
 </body>
 </html>
