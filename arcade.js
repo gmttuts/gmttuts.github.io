@@ -360,33 +360,78 @@
   });
 
 
-  /* ---- Flappy GMT: the hero rides a little winged bear ---- */
+  /* ---- Flappy GMT: the hero (side view) sits on the flying bear neck-pillow ---- */
+  // Sprite parts in local pixels, origin at the sprite centre, facing right.
+  // The same list drives drawing AND collision, so the hitbox is exactly what you see.
+  var FLAP_PARTS = [
+    // neck pillow (side view of the U) + bear face at the front
+    [-15, 3, 26, 9, '#a3563b'], [-17, 5, 2, 5, '#a3563b'], [11, 4, 3, 7, '#a3563b'],
+    [-13, 3, 20, 2, '#c0714f'],
+    [10, -5, 10, 10, '#a3563b'], [10, -8, 3, 3, '#a3563b'], [17, -8, 3, 3, '#a3563b'],
+    [11, -7, 1, 1, '#5e2f1f'], [18, -7, 1, 1, '#5e2f1f'],
+    [15, 0, 6, 4, '#fff7ee'], [19, 0, 2, 1, C.ink], [17, 3, 2, 1, C.ink], [14, -2, 1, 2, C.ink],
+    // hero sitting astride, facing right
+    [-6, -1, 10, 4, C.navy], [3, 1, 4, 7, C.navy], [3, 7, 4, 2, '#4a5a95'], [3, 9, 7, 3, C.navy], [3, 11, 7, 1, '#fff'],
+    [-7, -11, 9, 10, '#fff'], [-4, -11, 5, 4, '#cfe0ff'],
+    [0, -8, 7, 3, C.skin], [6, -9, 3, 4, C.skin],
+    [-6, -21, 10, 10, C.skin],
+    [-8, -24, 11, 5, C.navy], [-9, -21, 4, 8, C.navy], [-6, -26, 3, 2, C.navy], [-1, -26, 3, 2, C.navy],
+    [-4, -17, 2, 3, '#e9a58a'],
+    [1, -18, 1, 2, C.ink], [1, -14, 2, 1, '#ff8f8f'], [3, -14, 2, 1, C.red]
+  ];
+  var FLAP_X = 72, FLAP_S = 0.8;
+  function flapPose(g) { return Math.max(-0.35, Math.min(0.5, g.vy / 520)); }
+  // world-space sample points of every solid part (2px grid incl. edges), rotated like the drawing
+  function flapPoints(g) {
+    var a = flapPose(g), c = Math.cos(a), s = Math.sin(a), out = [];
+    FLAP_PARTS.forEach(function (p) {
+      var nx = Math.ceil(p[2] / 2), ny = Math.ceil(p[3] / 2);
+      for (var i = 0; i <= nx; i++) {
+        var x = p[0] + Math.min(p[2], i * 2);
+        for (var j = 0; j <= ny; j++) {
+          var y = p[1] + Math.min(p[3], j * 2);
+          out.push([FLAP_X + (c * x - s * y) * FLAP_S, g.y + (s * x + c * y) * FLAP_S]);
+        }
+      }
+    });
+    return out;
+  }
   GAMES.unshift({
     id: 'flappy', en: 'Flappy GMT', vi: 'Flappy GMT', col: C.sky,
     keys: [['SPACE / ↑', 'Flap', 'Vỗ cánh bay lên']],
     reset: function () {
-      this.y = 110; this.vy = 0; this.pipes = []; this.t = 0; this.score = 0; this.dead = false; this.gx = 0; this.flap = 0;
+      this.y = 110; this.vy = 0; this.pipes = []; this.score = 0; this.dead = false; this.gx = 0; this.flap = 0;
       this.next = 0.9;
     },
     update: function (dt) {
-      if (tapped.a || tapped.up || tapped.tap) { this.vy = -235; this.flap = 0.25; beep(620, 0.06, 'square', 0.035, 1.4); }
+      if (tapped.a || tapped.up || tapped.tap) { this.vy = -218; this.flap = 0.25; beep(620, 0.06, 'square', 0.035, 1.4); }
       this.vy += 760 * dt; this.y += this.vy * dt; this.flap -= dt;
       var sp = 92 + Math.min(40, this.score * 2);
       this.gx = (this.gx + sp * dt) % 16;
       this.next -= dt;
       if (this.next <= 0) {
-        var gap = Math.max(64, 84 - this.score);
-        this.pipes.push({ x: W + 10, w: 30, top: ri(30, 196 - gap - 20), gap: gap, col: [C.orange, C.green, C.purple, C.pink, C.yellow][ri(0, 4)], done: false });
+        var gap = Math.max(78, 100 - this.score);
+        this.pipes.push({ x: W + 10, w: 30, top: ri(28, 196 - gap - 22), gap: gap, col: [C.orange, C.green, C.purple, C.pink, C.yellow][ri(0, 4)], done: false });
         this.next = 150 / sp + 0.15;
       }
-      var self = this, me = { x: 58, y: this.y - 12, w: 28, h: 22 };
+      var self = this;
       this.pipes.forEach(function (p) {
         p.x -= sp * dt;
-        if (!p.done && p.x + p.w < me.x) { p.done = true; self.score++; beep(990, 0.07, 'square', 0.04, 1.3); }
-        if (hit(me, { x: p.x, y: 0, w: p.w, h: p.top }) || hit(me, { x: p.x, y: p.top + p.gap, w: p.w, h: 400 })) self.dead = true;
+        if (!p.done && p.x + p.w < FLAP_X - 14) { p.done = true; self.score++; beep(990, 0.07, 'square', 0.04, 1.3); }
       });
       this.pipes = this.pipes.filter(function (p) { return p.x > -40; });
-      if (this.y > 196 - 11 || this.y < 8) this.dead = true;
+      // collision: caps stick out 3px each side of a pipe, so test the drawn shape of pipe + cap
+      var pts = flapPoints(this), near = this.pipes.filter(function (p) { return p.x < FLAP_X + 30 && p.x + p.w > FLAP_X - 30; });
+      for (var i = 0; i < pts.length && !this.dead; i++) {
+        var q = pts[i];
+        if (q[1] >= 196 || q[1] <= 0) { this.dead = true; break; }
+        for (var k = 0; k < near.length; k++) {
+          var p = near[k], bot = p.top + p.gap;
+          var inBody = q[0] >= p.x && q[0] <= p.x + p.w && (q[1] <= p.top || q[1] >= bot);
+          var inCap = q[0] >= p.x - 3 && q[0] <= p.x + p.w + 3 && ((q[1] >= p.top - 10 && q[1] <= p.top) || (q[1] >= bot && q[1] <= bot + 10));
+          if (inBody || inCap) { this.dead = true; this.hitAt = q; break; }
+        }
+      }
       if (this.dead) beep(150, 0.4, 'sawtooth', 0.06, 0.4);
     },
     draw: function (ctx, t) {
@@ -403,21 +448,18 @@
       rect(ctx, 0, 196, W, 44, '#2a2447');
       rect(ctx, 0, 196, W, 3, C.lilac);
       for (var x = -this.gx; x < W; x += 16) rect(ctx, x, 204, 8, 3, C.purple);
-      // bear with tiny wings, hero on its back
-      var y = Math.round(this.y), x0 = 56, tilt = Math.max(-0.4, Math.min(0.6, this.vy / 500));
-      ctx.save(); ctx.translate(x0 + 14, y); ctx.rotate(tilt); ctx.scale(1.35, 1.35);
+      ctx.save(); ctx.translate(FLAP_X, this.y); ctx.rotate(flapPose(this)); ctx.scale(FLAP_S, FLAP_S);
+      // little wings on the pillow (decoration only, not part of the hitbox)
       var up = this.flap > 0 || Math.floor(t * 10) % 2;
-      rect(ctx, -6, up ? -14 : -2, 10, 8, '#fff'); rect(ctx, -5, up ? -13 : -1, 8, 6, C.lilac);
-      rect(ctx, -12, -6, 24, 14, C.ink); rect(ctx, -11, -5, 22, 12, '#a3563b');
-      rect(ctx, 8, -9, 9, 10, C.ink); rect(ctx, 9, -8, 7, 8, '#a3563b');
-      rect(ctx, 9, -11, 3, 3, '#5e2f1f'); rect(ctx, 14, -11, 3, 3, '#5e2f1f');
-      rect(ctx, 12, -4, 5, 4, '#fff7ee'); rect(ctx, 14, -4, 2, 1, C.ink); rect(ctx, 11, -6, 1, 1, C.ink);
-      // rider
-      rect(ctx, -4, -16, 8, 10, C.ink); rect(ctx, -3, -15, 6, 8, '#fff');
-      rect(ctx, -4, -24, 9, 9, C.ink); rect(ctx, -3, -23, 7, 7, C.skin);
-      rect(ctx, -5, -27, 11, 5, C.navy); rect(ctx, -5, -23, 2, 3, C.navy);
-      rect(ctx, 2, -21, 1, 2, C.ink);
+      ctx.fillStyle = C.ink; ctx.fillRect(-20, up ? -6 : 9, 11, up ? 8 : 6);
+      ctx.fillStyle = '#fff'; ctx.fillRect(-19, up ? -5 : 10, 9, up ? 6 : 4);
+      ctx.fillStyle = C.lilac; ctx.fillRect(-19, up ? -1 : 12, 9, 2);
+      // ink outline under every part, then the colours
+      ctx.fillStyle = C.ink;
+      FLAP_PARTS.forEach(function (p) { ctx.fillRect(p[0] - 1, p[1] - 1, p[2] + 2, p[3] + 2); });
+      FLAP_PARTS.forEach(function (p) { ctx.fillStyle = p[4]; ctx.fillRect(p[0], p[1], p[2], p[3]); });
       ctx.restore();
+      if (this.debug) { ctx.fillStyle = 'rgba(255,0,0,.8)'; flapPoints(this).forEach(function (q) { ctx.fillRect(q[0], q[1], 1, 1); }); }
       text(ctx, String(this.score), W / 2, 22, 30, '#fff');
     }
   });
@@ -694,7 +736,7 @@
       tapped[want] = true;
     } else if (d.id === 'bricks') { d.pointerX = d.b.x + Math.sin(T * 2) * 10; tapped = { a: d.b.stuck }; }
     else if (d.id === 'defender') { d.pointerX = 160 + Math.sin(T * 0.9) * 110; tapped = { a: Math.random() < 0.05 }; d.inv = 9; }
-    else if (d.id === 'flappy') { var pp = d.pipes.filter(function (p) { return p.x + p.w > 50; })[0]; var gy = pp ? pp.top + pp.gap * 0.62 : 110; tapped = { a: d.y > gy && d.vy > -40 }; }
+    else if (d.id === 'flappy') { var pp = d.pipes.filter(function (p) { return p.x + p.w > FLAP_X - 20; })[0]; var gy = pp ? pp.top + pp.gap * 0.62 : 110; tapped = { a: d.y > gy && d.vy > -40 }; }
     else if (d.id === 'pong') { d.pointerY = d.b.y - 4 + Math.sin(T * 3) * 8; tapped = { a: true }; }
     else if (d.id === 'runner') { var o = d.obs[0]; tapped = { a: !!(o && !o.fly && o.x - d.h.x < 34 && o.x > d.h.x) }; held = { down: !!(o && o.fly && o.x - d.h.x < 40) }; }
     d.update(dt);
