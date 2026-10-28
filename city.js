@@ -2117,6 +2117,9 @@
   /* ================= CHARACTER SELECT + CLOSET ================= */
   var charsel = document.getElementById('charsel');
   function savedChar() { try { return localStorage.getItem('city-char'); } catch (e) { return null; } }
+  // bump CS_VER when the closet gets something new: anyone who saw an older one gets it opened once more
+  var CS_VER = 2;
+  function seenVer() { try { return +localStorage.getItem('city-cs-ver') || 0; } catch (e) { return CS_VER; } }
   function T(en, vi) { return '<span lang="en">' + en + '</span><span lang="vi">' + vi + '</span>'; }
   var LOOK0 = { skin: '#f8c0a2', hair: 'curly', hairc: '#262d4a', eyes: 'dot', shirt: '#ffffff', pants: '#262d4a', acc: 'none', pet: 'bear', mount: 'bear', helm: 'classic' };
   var CLOSET = [
@@ -2332,7 +2335,7 @@
     if (charsel.hidden) return;
     charsel.hidden = true;
     document.body.classList.remove('charsel-open');
-    try { if (!savedChar()) localStorage.setItem('city-char', hero.char); } catch (e) {}
+    try { if (!savedChar()) localStorage.setItem('city-char', hero.char); localStorage.setItem('city-cs-ver', CS_VER); } catch (e) {}
   }
   function pickChar(c) {
     var changed = c !== hero.char;
@@ -2403,7 +2406,7 @@
       followTarget();
     }
     view.s = goal.s; view.tx = goal.tx; view.ty = goal.ty;
-    if (!sc) openCharsel();
+    if (!sc || seenVer() < CS_VER) openCharsel();
     refreshChips();
     drawAnts(null, null);
     requestAnimationFrame(frame);
