@@ -828,7 +828,8 @@
         var o = Math.sin(t * 1.5 - li * 0.8) * 0.5;
         var on = hero.z > 3 && Math.abs(hero.y - 10.35) < 0.5 && hero.x > x0 - 0.1 && hero.x < x0 + wcols * vx + 0.1;
         L0.dip = lerp(L0.dip || 0, on ? 5 : 0, 0.25);
-        lg.setAttribute('transform', 'translate(0,' + (o * 6 + L0.dip + quake(x0 + wcols * vx / 2, ly) * 1.5).toFixed(1) + ')');
+        L0.oy = o * 6 + L0.dip + quake(x0 + wcols * vx / 2, ly) * 1.5;
+        lg.setAttribute('transform', 'translate(0,' + L0.oy.toFixed(1) + ')');
         shadow.setAttribute('rx', (30 + o * 4).toFixed(1));
       });
     });
@@ -2140,6 +2141,180 @@
     c.bub = { g: g, t: 2.2 };
   }
 
+  /* ---------- Kẹp: the v4 paperclip, hopping and dancing on top of G, M, T ---------- */
+  var KEP = (function () {
+    var LY = 10.35, TOP = 3.2, SC = 0.95;
+    var SPOTS = [5.35, 5.85, 6.35, 7.35, 9.35, 10.35, 10.85, 11.35];
+    var TOPS = [[5.1, 6.6], [7.1, 7.6], [9.1, 9.6], [10.1, 11.6]];
+    var SILVER = '#c3c6ea', HOT = '#ff4a3d';
+    var WIRE = 'M4,-24 V-14 a4,4 0 0 1 -8,0 V-36 a7,7 0 0 1 14,0 V-10 a10,10 0 0 1 -20,0 V-28';
+    var BROWS = {
+      happy: ['M-8,-34.5 q3.5,-2.6 7,-0.6', 'M1.5,-35.5 q3.5,-2.6 7,0.6'],
+      scared: ['M-8,-37 q3.5,-2.6 7,-0.6', 'M1.5,-38 q3.5,-2.6 7,0.6'],
+      angry: ['M-8.5,-36.5 L-1.2,-33', 'M1.2,-33.8 L8.8,-37.8']
+    };
+    var MOUTH = { smile: 'M-2.6,-21.6 q3,3.2 6,0', frown: 'M-2.6,-19 q3,-3.2 6,0', o: 'M-1.4,-20.3 a1.9,2.3 0 1,0 3.8,0 a1.9,2.3 0 1,0 -3.8,0' };
+    var g = el('g', { 'data-kep': 1, 'pointer-events': 'none' }, L.actors);
+    var sh = el('ellipse', { rx: 10, ry: 3.5, fill: 'rgba(22,22,29,.2)' }, g);
+    var body = el('g', null, g);
+    el('path', { d: WIRE, fill: 'none', stroke: C.ink, 'stroke-width': 5.4, 'stroke-linecap': 'round' }, body);
+    var wire = el('path', { d: WIRE, fill: 'none', stroke: SILVER, 'stroke-width': 2.6, 'stroke-linecap': 'round' }, body);
+    el('path', { d: WIRE, fill: 'none', stroke: '#fff', 'stroke-width': 0.9, 'stroke-linecap': 'round', opacity: 0.85, transform: 'translate(-0.5,-0.5)' }, body);
+    var brows = [0, 1].map(function () { return el('path', { fill: 'none', stroke: C.ink, 'stroke-width': 2, 'stroke-linecap': 'round' }, body); });
+    var eyes = [[-4.5, -28.5], [5, -29.5]].map(function (e) {
+      var eg = el('g', null, body);
+      el('ellipse', { cx: e[0], cy: e[1], rx: 4, ry: 3.7, fill: '#fff', stroke: C.ink, 'stroke-width': 1.4 }, eg);
+      return { g: eg, c: e, pu: el('circle', { r: 1.9, fill: C.ink }, eg) };
+    });
+    var mouth = el('path', { stroke: C.ink, 'stroke-width': 1.6, 'stroke-linecap': 'round' }, body);
+    // anger mark beside the head
+    var vein = el('path', { d: 'M8,-47 q2.6,1 2.6,3.6 M15,-47 q-2.6,1 -2.6,3.6 M8,-38.5 q2.6,-1 2.6,-3.6 M15,-38.5 q-2.6,-1 -2.6,-3.6', fill: 'none', stroke: C.red, 'stroke-width': 1.9, 'stroke-linecap': 'round', display: 'none' }, body);
+    var smokeG = el('g', null, g), puffs = [];
+
+    var k = { x: SPOTS[1], st: 'idle', timer: 0, dur: 1, face: 1, h: 0, land: 0, heat: 0, blink: 2, puffT: 0, cx: SPOTS[1], sy: 0 };
+    function letterOf(x) { return x < 6.85 ? 0 : x < 9.85 ? 1 : 2; }
+    function lift(x) { return LET[letterOf(x)].oy || 0; }
+    function onTop(x) { return TOPS.some(function (r) { return x > r[0] - 0.05 && x < r[1] + 0.05; }); }
+    function next() {
+      k.timer = 0;
+      var r = Math.random();
+      if (r < 0.55) {
+        var near = SPOTS.filter(function (s) { return s !== k.x && Math.abs(s - k.x) < 2.1; });
+        var pool = near.length && Math.random() < 0.7 ? near : SPOTS.filter(function (s) { return s !== k.x; });
+        k.st = 'hop'; k.from = k.x; k.to = pool[Math.floor(Math.random() * pool.length)];
+        var d = Math.abs(k.to - k.from);
+        k.dur = 0.42 + 0.1 * d; k.hh = 0.4 + 0.22 * d; k.flip = d > 1.4 && Math.random() < 0.5;
+        k.face = k.to > k.from ? 1 : -1;
+      } else if (r < 0.82) { k.st = 'dance'; k.dur = 1.5; }
+      else { k.st = 'idle'; k.dur = rnd(0.5, 1.6); }
+    }
+    function dust(x, oy) {
+      var p = P(x, LY, TOP);
+      for (var i = 0; i < 6; i++) {
+        var side = i % 2 ? 1 : -1;
+        var c = el('circle', { r: 2, fill: '#fff', stroke: C.ink, 'stroke-width': 1.4 }, L.fx);
+        PARTS.push({ n: c, x: p[0] + side * 5, y: p[1] + oy, vx: side * rnd(25, 60), vy: -rnd(8, 30), r: 1.5 + Math.random() * 1.5, life: 0.45, max: 0.6 });
+      }
+    }
+    function update(dt, t) {
+      k.timer += dt;
+      var u = clamp(k.timer / (k.dur || 1), 0, 1);
+      var x = k.x, h = 0, sx = 1, sy = 1 + Math.sin(t * 4) * 0.03, rot = 0, shakeX = 0;
+      var mood = 'happy', mo = 'smile', look = [Math.sin(t * 1.3) * 1.1, 0], wide = 1, oy = lift(x);
+      // the hero hopping along the letters sends Kẹp leaping out of the way
+      var heroOn = hero.mode === 'travel' && Math.abs(hero.y - LY) < 1.1;
+      if (heroOn && Math.abs(hero.x - k.cx) < 1.6 && k.st !== 'dodge') {
+        k.x = Math.abs(k.cx - nearestSpot(k.cx)) < 0.3 ? nearestSpot(k.cx) : k.cx;
+        k.st = 'dodge'; k.ph = 'up'; k.timer = 0; k.h0 = k.h; k.heat = 0; u = 0;
+        SFX.tone(420, 0.28, 'sine', 0.06, 2.6);
+      }
+      if (k.st === 'hop') {
+        var a = clamp((u - 0.14) / 0.86, 0, 1), e = a * a * (3 - 2 * a);
+        if (u < 0.14) { sy = 1 - 0.22 * Math.sin(u / 0.14 * Math.PI); sx = 1 + 0.15 * Math.sin(u / 0.14 * Math.PI); }
+        else { sy = 1 + 0.18 * Math.sin(a * Math.PI); sx = 1 - 0.1 * Math.sin(a * Math.PI); }
+        x = lerp(k.from, k.to, e); h = Math.sin(Math.PI * a) * k.hh;
+        oy = lerp(lift(k.from), lift(k.to), e);
+        if (k.flip) rot = 360 * e * k.face;
+        look = [1.2, 0];
+        if (u >= 1) { k.x = k.to; k.land = 0.2; dust(k.x, lift(k.x)); SFX.pop(); next(); }
+      } else if (k.st === 'dance') {
+        // two wiggle hops, then a spinning hop
+        var q = u * 3, qi = Math.min(2, Math.floor(q)), qu = q - qi;
+        h = Math.sin(qu * Math.PI) * [0.32, 0.28, 0.5][qi];
+        rot = qi === 0 ? -14 * Math.sin(qu * Math.PI) : qi === 1 ? 16 * Math.sin(qu * Math.PI) : 360 * qu * k.face;
+        var gq = 1 - Math.sin(qu * Math.PI);
+        if (gq > 0.8) { sy = 0.86; sx = 1.12; } else { sy = 1.08; sx = 0.95; }
+        look = [Math.sin(t * 9) > 0 ? 1.3 : -1.3, -0.5];
+        if (u >= 1) next();
+      } else if (k.st === 'dodge') {
+        mood = 'scared'; mo = 'o'; wide = 1.3;
+        if (k.ph === 'up') {
+          var eu = 1 - Math.pow(1 - clamp(k.timer / 0.3, 0, 1), 3);
+          h = lerp(k.h0, 2.5, eu); sy = 1.75 - 0.4 * eu; sx = 0.66 + 0.18 * eu;
+          if (k.timer >= 0.3) { k.ph = 'hang'; k.timer = 0; }
+        } else if (k.ph === 'hang') {
+          // stretched tall as it can, peeking down at the hero passing below
+          h = 2.5 + Math.sin(k.timer * 7) * 0.06; sy = 1.35 + Math.sin(t * 11) * 0.05; sx = 0.82;
+          look = [clamp((hero.x - x) * 1.5, -1.6, 1.6), 1.4];
+          var still = heroOn && Math.abs(hero.x - x) < 1.15;
+          if ((!still && k.timer > 0.08) || k.timer > 2.6) { k.ph = 'down'; k.timer = 0; k.hd = h; }
+        } else {
+          var du = clamp(k.timer / 0.32, 0, 1);
+          h = k.hd * (1 - du * du); sy = 1.25; sx = 0.88;
+          if (du >= 1) {
+            h = 0; k.land = 0.32; dust(x, oy); SFX.land();
+            k.st = 'angry'; k.timer = 0; k.dur = 1.9; k.puffT = 0;
+            [0, 0.22, 0.44].forEach(function (d0) { SFX.tone(130 + Math.random() * 30, 0.16, 'sawtooth', 0.03, 0.6, d0); });
+          }
+        }
+      } else if (k.st === 'angry') {
+        // glares at the hero, wire glowing hot, fuming
+        mood = 'angry'; mo = 'frown';
+        var hp = P(hero.x, hero.y, hero.z)[0] - P(x, LY, TOP)[0];
+        if (Math.abs(hp) > 3) k.face = hp < 0 ? -1 : 1;
+        look = [1.6, 0.4];
+        k.heat = Math.min(1, k.heat + dt * 5);
+        shakeX = Math.sin(t * 70) * 1.4 * (1 - u);
+        if (u < 0.5) h = Math.abs(Math.sin(u * Math.PI * 4)) * 0.07;
+        sy = 1 + Math.sin(t * 14) * 0.05; sx = 1 - Math.sin(t * 14) * 0.03;
+        k.puffT -= dt;
+        if (u < 0.85 && k.puffT <= 0) { k.puffT = 0.08; puff(x, oy); }
+        if (u >= 1) { k.st = 'calm'; k.timer = 0; k.dur = 0.7; }
+      } else if (k.st === 'calm') {
+        // a long sigh, then back to smiling
+        k.heat = Math.max(0, 1 - u * 1.6);
+        sy = 1 - Math.sin(u * Math.PI) * 0.12; sx = 1 + Math.sin(u * Math.PI) * 0.06;
+        mood = u < 0.5 ? 'angry' : 'happy'; mo = u < 0.5 ? 'frown' : 'smile';
+        if (u >= 1) { k.st = 'dance'; k.timer = 0; k.dur = 1.5; }
+      } else {
+        if (u >= 1) next();
+      }
+      if (k.land > 0) { k.land -= dt; var lu = k.land / 0.32; sy *= 1 - 0.38 * lu; sx *= 1 + 0.3 * lu; }
+      k.h = h; k.cx = x;
+      // draw
+      var gp = P(x, LY, TOP), p = P(x, LY, TOP + h);
+      var bx = p[0] + shakeX, by = p[1] + oy;
+      body.setAttribute('transform', 'translate(' + bx.toFixed(1) + ',' + by.toFixed(1) + ') rotate(' + rot.toFixed(1) + ',0,' + (-22 * SC * sy).toFixed(1) + ') scale(' + (k.face * SC * sx).toFixed(3) + ',' + (SC * sy).toFixed(3) + ')');
+      var top = onTop(x);
+      sh.setAttribute('display', top ? '' : 'none');
+      sh.setAttribute('cx', gp[0].toFixed(1)); sh.setAttribute('cy', (gp[1] + lift(x)).toFixed(1));
+      sh.setAttribute('rx', Math.max(3, 10 - h * 4).toFixed(1));
+      wire.setAttribute('stroke', k.heat > 0 ? mix(SILVER, HOT, k.heat) : SILVER);
+      vein.setAttribute('display', mood === 'angry' ? '' : 'none');
+      if (mood === 'angry') vein.setAttribute('transform', 'translate(0,' + (Math.sin(t * 16) * 0.8).toFixed(1) + ')');
+      brows[0].setAttribute('d', BROWS[mood][0]); brows[1].setAttribute('d', BROWS[mood][1]);
+      mouth.setAttribute('d', MOUTH[mo]); mouth.setAttribute('fill', mo === 'o' ? C.ink : 'none');
+      k.blink -= dt;
+      var bl = k.blink < 0 && mood === 'happy';
+      if (k.blink < -0.12) k.blink = 1.5 + Math.random() * 3;
+      eyes.forEach(function (e) {
+        var s = bl ? 0.15 : wide;
+        e.g.setAttribute('transform', 'translate(' + e.c[0] + ',' + e.c[1] + ') scale(' + (wide > 1 ? 1.15 : 1) + ',' + s + ') translate(' + -e.c[0] + ',' + -e.c[1] + ')');
+        e.pu.setAttribute('cx', (e.c[0] + look[0]).toFixed(1)); e.pu.setAttribute('cy', (e.c[1] + look[1] + (mood === 'angry' ? 0.6 : 0)).toFixed(1));
+        e.pu.setAttribute('r', mood === 'scared' ? 1.4 : 1.9);
+      });
+      // smoke rising off the head, red-hot first then sooty grey
+      for (var i = puffs.length - 1; i >= 0; i--) {
+        var f = puffs[i];
+        f.life -= dt;
+        if (f.life <= 0) { f.n.remove(); puffs.splice(i, 1); continue; }
+        var age = 1 - f.life / f.max;
+        f.x += f.vx * dt; f.y -= (30 - age * 10) * dt; f.r = 2.2 + age * 4.5;
+        f.n.setAttribute('cx', f.x.toFixed(1)); f.n.setAttribute('cy', f.y.toFixed(1)); f.n.setAttribute('r', f.r.toFixed(1));
+        f.n.setAttribute('fill', mix('#ff8a5c', '#5d5d70', Math.min(1, age * 2.2)));
+        f.n.setAttribute('opacity', Math.min(1, (1 - age) * 2).toFixed(2));
+      }
+      k.sy = gp[1] + oy;
+    }
+    function nearestSpot(x) { return SPOTS.reduce(function (b, s) { return Math.abs(s - x) < Math.abs(b - x) ? s : b; }, SPOTS[0]); }
+    function puff(x, oy) {
+      var p = P(x, LY, TOP);
+      var n = el('circle', { r: 2, stroke: C.ink, 'stroke-width': 1.4 }, smokeG);
+      puffs.push({ n: n, x: p[0] + rnd(-4, 6) * SC, y: p[1] + oy - 44 * SC, vx: rnd(-10, 12), life: 0.9, max: 0.9, r: 2 });
+    }
+    return { g: g, k: k, update: update, get x() { return k.cx; }, y: LY, get sy() { return k.sy; } };
+  })();
+
   /* ---------- clouds (screen-space parallax, inside camera) ---------- */
   var clouds = [];
   function cloud(x, y, s, sp) {
@@ -2698,6 +2873,7 @@
     for (var i = 0; i < anims.length; i++) anims[i](t, dt);
     hero.update(dt, t);
     updateCre(dt, t);
+    KEP.update(dt, t);
     drawRope(dt);
     updatePads(dt);
     updateParts(dt);
@@ -2709,14 +2885,15 @@
     // on the move the hero rides above everything, name tags included; parked, it sorts by its ground spot
     var flying = hero.mode === 'travel';
     if ((frameN++ & 7) === 0 || flying !== (heroWrap.parentNode === L.sky)) {
-      var list = CRE.map(function (c) { return { n: c.g, y: c.sy || 0 }; });
+      var list = CRE.map(function (c) { return { n: c.g, y: c.sy || 0, x: c.x, wy: c.y }; });
+      list.push({ n: KEP.g, y: KEP.sy, x: KEP.x, wy: KEP.y });
       if (flying) {
         if (heroWrap.parentNode !== L.sky) L.sky.appendChild(heroWrap);
         // the moving hero rides above everything, except a creature standing nearer the viewer
         // close by on screen: that one is lifted above the hero until it's passed
         list = list.filter(function (it, i) {
-          var c = CRE[i], front = c.x + c.y > hero.x + hero.y + 0.25 && Math.abs((c.x - c.y) - (hero.x - hero.y)) < 1.6;
-          if (front) { L.sky.appendChild(c.g); return false; }
+          var front = it.x + it.wy > hero.x + hero.y + 0.25 && Math.abs((it.x - it.wy) - (hero.x - hero.y)) < 1.6;
+          if (front) { L.sky.appendChild(it.n); return false; }
           return true;
         });
       }
@@ -2768,5 +2945,5 @@
   setTimeout(layoutTags, 1200); setTimeout(layoutTags, 3500);
   init();
 
-  window.GMTCity = { sfx: SFX, openArcade: openArcade, cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt, openCharsel: openCharsel, pickChar: pickChar, setLook: setLook, look: function () { return look; }, turn: function (d) { setAuto(false); TT.th = d; TT.pop = 9; render(); TT.pop = 9; render(); }, follow: function () { return follow; } };
+  window.GMTCity = { kep: KEP, sfx: SFX, openArcade: openArcade, cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt, openCharsel: openCharsel, pickChar: pickChar, setLook: setLook, look: function () { return look; }, turn: function (d) { setAuto(false); TT.th = d; TT.pop = 9; render(); TT.pop = 9; render(); }, follow: function () { return follow; } };
 })();
