@@ -153,13 +153,13 @@
       else box(g, s.lo, other, 0, len, 1, s.top, col);
     });
   }
+  // a thin bridge deck; no stub legs (they read as glitches, not supports)
+  var SLABS = [];
   function slab(g, x, y, w, d, z, col) {
     box(g, x, y, z - 0.25, w, d, 0.25, col);
-    if (w * d > 2.2) {
-      var cx = x + w / 2 - 0.15, cy = y + d / 2 - 0.15;
-      box(g, cx, cy, 0, 0.3, 0.3, z - 0.25, col);
-    }
+    SLABS.push([x, y, w, d]);
   }
+  function onBridge(x, y) { return SLABS.some(function (b) { return x >= b[0] - 0.05 && x <= b[0] + b[2] + 0.05 && y >= b[1] - 0.05 && y <= b[1] + b[3] + 0.05; }); }
 
   /* ---------- impacts: shake, dust, shockwave, nearby things react ---------- */
   var QUAKE = { t0: -99, x: 0, y: 0, f: 0 }, shake = 0, PARTS = [], PADS = [];
@@ -292,8 +292,8 @@
     { p: [10, 4.1, 3] },
     { p: [12, 4.1, 2], t: 'stairs' },
     { p: [13.5, 4.1, 2], s: 4 },
-    { p: [13.5, 4.75, 2] },
-    { p: [13.5, 9.82, 1], t: 'jump' },
+    { p: [14.68, 4.22, 2] },
+    { p: [13.95, 10.95, 1], t: 'slide' },
     { p: [13.5, 10.5, 1], s: 5 },
     { p: [13.5, 16.7, 1], s: 6 }
     // closes back to node 0 with a walk
@@ -310,7 +310,7 @@
   var ADJ = GN.map(function () { return []; });
   function edge(u, v, t) {
     var a = GN[u], b = GN[v], len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
-    var c = t === 'rope' ? len * 1.6 : t === 'jump' ? 4 : t === 'hop' ? 0.9 : t === 'stairs' ? len * 1.3 : len;
+    var c = t === 'rope' ? len * 1.6 : t === 'jump' || t === 'slide' ? 4 : t === 'hop' ? 0.9 : t === 'stairs' ? len * 1.3 : len;
     ADJ[u].push({ to: v, t: t, c: c }); ADJ[v].push({ to: u, t: t, c: c });
   }
   function addNode(p) { GN.push(p); ADJ.push([]); return GN.length - 1; }
@@ -341,18 +341,187 @@
 
   var ROPE = { a: P(3.9, 3.8, 4.55), b: P(7.1, 3.8, 4.55), sag: 15, wob: 0, wv: 0, hold: null, load: 0 };
 
+  /* Water slide 05 → 06: a drop off the tower, a vertical loop, a U-turn into the studio.
+     The centreline is sampled once; `t` is the ride time at each sample (energy minus friction). */
+  var SLIDE = (function () {
+    function cat(p0, p1, p2, p3, u) {
+      return [0, 1, 2].map(function (i) {
+        var a = p0[i], b = p1[i], c = p2[i], d = p3[i];
+        return 0.5 * (2 * b + (c - a) * u + (2 * a - 5 * b + 4 * c - d) * u * u + (3 * b - a - 3 * c + d) * u * u * u);
+      });
+    }
+    // only spans cp[from]..cp[to]; the outer points just steer the end tangents
+    function spline(cp, n, out, from, to) {
+      for (var i = from; i < to; i++) {
+        var p0 = cp[Math.max(0, i - 1)], p3 = cp[Math.min(cp.length - 1, i + 2)];
+        for (var k = 0; k < n; k++) out.push(cat(p0, cp[i], cp[i + 1], p3, k / n));
+      }
+    }
+    // off the tower heading right, a wide sweep down and round toward the viewer, a loop that
+    // faces the camera (it drifts toward the viewer so the way out passes in front of the way in),
+    // then a long banked climb that throws the rider off high above the studio roof
+    var pts = [], R = 1.15, RZ = 1.45, ex = 18.35, ey = 7.3, ez = 0.65, lw = 1.15, s2 = Math.SQRT1_2;
+    // the loop's own direction where it starts and ends; the splines either side are steered
+    // along it so there's no kink at the joins
+    var lt = [-R * s2 + lw * s2 / (Math.PI * 2), R * s2 + lw * s2 / (Math.PI * 2), 0], ll = Math.hypot(lt[0], lt[1]);
+    lt = [lt[0] / ll, lt[1] / ll, 0];
+    function along(p, q, sign) { var L = Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) * 2 * sign; return [p[0] + lt[0] * L, p[1] + lt[1] * L, p[2]]; }
+    // The track is built raw (spline in, loop, spline out), then respaced evenly and relaxed
+    // as ONE line, joins included, so the bend changes gradually everywhere: no corners.
+    function even(a, step) {
+      var out = [a[0]], acc = 0;
+      for (var i = 1; i < a.length; i++) {
+        var p = a[i - 1], q = a[i], d = Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]), u = step - acc;
+        while (u <= d) { var w = u / d; out.push([lerp(p[0], q[0], w), lerp(p[1], q[1], w), lerp(p[2], q[2], w)]); u += step; }
+        acc = d - (u - step);
+      }
+      out.push(a[a.length - 1]);
+      return out;
+    }
+    function relax(a, fixA, fixB, n) {
+      for (var r = 0; r < n; r++) {
+        var b = a.map(function (p) { return p.slice(); });
+        for (var i = fixA; i < a.length - fixB; i++) for (var j = 0; j < 3; j++) b[i][j] = (a[i - 1][j] + 2 * a[i][j] + a[i + 1][j]) / 4;
+        a = b;
+      }
+      return a;
+    }
+    function arc(a) { var L = [0]; for (var i = 1; i < a.length; i++) L.push(L[i - 1] + Math.hypot(a[i][0] - a[i - 1][0], a[i][1] - a[i - 1][1], a[i][2] - a[i - 1][2])); return L; }
+    var inA = [19.4, 6.7, 0.75], raw = [];
+    spline([[14.96, 3.78, 3.4], [16.0, 3.9, 3.15], [17.3, 4.2, 2.6], [18.8, 4.9, 1.8], [19.6, 6.0, 1.1], inA, [ex, ey, ez], along(inA, [ex, ey, ez], 1)], 12, raw, 0, 6);
+    // the loop peels off at its right-hand side, where it points straight down, so the track
+    // drops vertically and then bends one way only into the U (no S)
+    function loopAt(th) { var f = R * Math.sin(th), dr = lw * th / (Math.PI * 2); return [ex - f * s2 + dr * s2, ey + f * s2 + dr * s2, ez + RZ * (1 - Math.cos(th))]; }
+    var rFrom = raw.length, TH = Math.PI * 1.5;
+    for (var k = 0; k < 72; k++) raw.push(loopAt(k / 96 * Math.PI * 2));
+    var rTo = raw.length, lo = loopAt(TH);
+    var ld = [-s2 * R * Math.cos(TH) + s2 * lw / (Math.PI * 2), s2 * R * Math.cos(TH) + s2 * lw / (Math.PI * 2), RZ * Math.sin(TH)];
+    // out of the loop: a deep round U, a climb in front of the studio's yellow block, a crest,
+    // and a lip that curls down toward the 06 mat (the user's sketch)
+    var o1 = [19.73, 7.24, 1.3], lL = Math.hypot(o1[0] - lo[0], o1[1] - lo[1], o1[2] - lo[2]) * 2 / Math.hypot(ld[0], ld[1], ld[2]);
+    spline([[o1[0] - ld[0] * lL, o1[1] - ld[1] * lL, o1[2] - ld[2] * lL], lo, o1, [19.99, 7.7, 1.0], [20.12, 8.05, 0.85], [20.38, 8.85, 0.72], [20.43, 9.57, 0.66], [20.6, 10.6, 0.7], [19.95, 11.6, 0.62], [18.95, 12.2, 0.82], [17.82, 12.2, 1.01], [16.68, 11.5, 1.75], [16.47, 11.4, 3.28], [16.14, 11.3, 3.96], [15.7, 11.2, 4.03], [15.27, 11.1, 3.43], [14.84, 11.0, 2.83]], 12, raw, 1, 15);
+    raw.push([15.27, 11.1, 3.43]);
+    var rs = arc(raw), sFrom = rs[rFrom], sTo = rs[rTo];
+    pts = relax(even(raw, 0.1), 2, 1, 60);
+    // where the loop now starts and ends along the smoothed line
+    var ps = arc(pts), tot = ps[ps.length - 1], rTot = rs[rs.length - 1], loopFrom = 0, loopTo = 0;
+    while (ps[loopFrom] < sFrom / rTot * tot) loopFrom++;
+    loopTo = loopFrom;
+    while (ps[loopTo] < sTo / rTot * tot) loopTo++;
+    // ride time: speed from the drop height, a little friction so the run-out slows down
+    var E = pts[0][2] + 0.32, s = 0, t = 0, out = [];
+    pts.forEach(function (p, i) {
+      if (i) {
+        var q = pts[i - 1], ds = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+        s += ds;
+        // falls fast off the tower, crawls over the loop, then a water jet in the run-out
+        // floors it all the way up the last climb so the rider gets flung off the lip
+        var jet = i > loopTo ? clamp((i - loopTo) / (pts.length - loopTo), 0, 1) : 0;
+        jet = jet * jet * (3 - 2 * jet);
+        var h = Math.max(0.3 + jet * 0.5, E - p[2] - s * 0.03);
+        t += ds / (Math.sqrt(2 * 9.8 * h) * (1 + 2.2 * jet));
+      }
+      out.push({ p: p, s: s, t: t, loop: i >= loopFrom && i < loopTo });
+    });
+    var T = RM ? 0.3 : 3.6, k0 = T / t;
+    out.forEach(function (o) { o.t *= k0; o.sp = P(o.p[0], o.p[1], o.p[2]); });
+    return { pts: out, T: T, loopFrom: loopFrom, loopTo: loopTo, top: [14.88, 3.78, 3.4], foot: [14.68, 4.22, 2], land: [13.95, 10.95, 1] };
+  })();
+  // position + screen tangent on the slide at ride time t
+  function slideAt(t) {
+    var a = SLIDE.pts, i = 1;
+    t = clamp(t, 0, SLIDE.T);
+    while (i < a.length - 1 && a[i].t < t) i++;
+    var p = a[i - 1], q = a[i], u = (t - p.t) / ((q.t - p.t) || 1);
+    return { p: [lerp(p.p[0], q.p[0], u), lerp(p.p[1], q.p[1], u), lerp(p.p[2], q.p[2], u)], d: [q.sp[0] - p.sp[0], q.sp[1] - p.sp[1]], loop: p.loop, i: i };
+  }
+
   /* draw list sorted by depth */
   var items = [];
   function item(key, fn) { items.push({ k: key, f: fn }); }
 
   // the loop's bridges + stairs
-  item(2 + 16.5 + 0.1, function (g) { slab(g, 2, 16.2, 4, 1, 1, C.orange); slab(g, 2, 14, 1, 2.2, 1, C.orange); });
+  // Home → Stats walkway: one L-shaped deck. Back arm first, then the front one, then a single
+  // top over both so it reads as one level with no seam at the corner.
+  item(2 + 16.5 + 0.1, function (g) {
+    slab(g, 2, 14, 1, 2.2, 1, C.orange); slab(g, 2, 16.2, 4, 1, 1, C.orange);
+    poly(g, [P(2, 14, 1), P(3, 14, 1), P(3, 16.2, 1), P(6, 16.2, 1), P(6, 17.2, 1), P(2, 17.2, 1)], C.top);
+  });
   item(2.5 + 13, function (g) { stairs(g, 'y', 14, 12, 2, 1, 2, C.green); });
   item(2.5 + 8, function (g) { slab(g, 2, 7, 1, 2, 2, C.green); });
   item(2.5 + 6, function (g) { stairs(g, 'y', 7, 5, 2, 2, 3, C.purple); });
   item(11 + 3.5, function (g) { stairs(g, 'x', 10, 12, 3.6, 3, 2, C.yellow); });
   item(13.5 + 13.5, function (g) { slab(g, 13, 12, 1, 3, 1, C.pink); });
   item(11 + 16.5, function (g) { slab(g, 10, 16.2, 2, 1, 1, C.lilac); });
+
+  // the water slide stands right of both blocks, so it draws after them in one go: supports
+  // first, then the track in two runs split at the top of the loop, so the loop's way out
+  // (nearer the viewer) crosses over its way in with a proper outline
+  var SLIDE_WATER = [], SLIDE_OVER = null, SLIDE_RUN = 0, SLIDE_IN = RM ? 0.05 : 1.3, SLIDE_OUT = RM ? 0.05 : 1.25;
+  item(25.5, function (g) {
+    var a = SLIDE.pts, sg = el('g', null, g), half = SLIDE.loopFrom + Math.round((SLIDE.loopTo - SLIDE.loopFrom) / 1.5);
+    var feet = [];
+    function post(p) {
+      // only on open ground, and not crowding another post
+      if (p[0] > 11.9 && p[0] < 15.1 && (p[1] > 8.9 && p[1] < 12.1 || p[1] < 5.1)) return;
+      if (p[2] < 0.35 || feet.some(function (q) { return Math.hypot(q[0] - p[0], q[1] - p[1]) < 0.75; })) return;
+      feet.push(p);
+      var t0 = P(p[0], p[1], p[2] - 0.12), b0 = P(p[0], p[1], 0);
+      el('ellipse', { cx: b0[0], cy: b0[1], rx: 6, ry: 3, fill: C.navy, stroke: C.ink, 'stroke-width': 1.5 }, sg);
+      line(sg, t0, b0, { stroke: C.ink, 'stroke-width': 5.5, 'stroke-linecap': 'round' });
+      line(sg, t0, b0, { stroke: C.yellow, 'stroke-width': 2.4, 'stroke-linecap': 'round' });
+    }
+    // the loop first (its foot and both sides), then one every ~1.1 tiles of ground covered
+    [0, 0.333].forEach(function (u) { post(a[SLIDE.loopFrom + Math.round((SLIDE.loopTo - SLIDE.loopFrom) * u)].p); });
+    var gone = 0.6;
+    a.forEach(function (o, i) {
+      if (!i || o.loop) return;
+      var q = a[i - 1].p;
+      gone += Math.hypot(o.p[0] - q[0], o.p[1] - q[1]);
+      if (gone >= 1.1) { var n = feet.length; post(o.p); if (feet.length > n) gone = 0; }
+    });
+    var run = 0;
+    // the loop's way out also gets a copy above the hero, shown while the hero is still on the
+    // way in, so the near side of the loop passes in front of the rider instead of under them
+    SLIDE_OVER = el('g', { display: 'none' }, L.sky);
+    [[0, half, sg], [half, a.length - 1, sg], [SLIDE.loopTo - 15, SLIDE.loopTo + 12, SLIDE_OVER]].forEach(function (r, ri) {
+      var d = '', sg = r[2];
+      for (var i = r[0]; i <= r[1]; i++) d += (i > r[0] ? ' L' : 'M') + a[i].sp[0].toFixed(1) + ',' + a[i].sp[1].toFixed(1);
+      el('path', { d: d, fill: 'none', stroke: C.ink, 'stroke-width': 17, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }, sg);
+      el('path', { d: d, fill: 'none', stroke: C.sky, 'stroke-width': 11.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }, sg);
+      el('path', { d: d, fill: 'none', stroke: shade(C.sky, 0.45), 'stroke-width': 4, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt', transform: 'translate(0,-2.2)' }, sg);
+      var w = el('path', { d: d, fill: 'none', stroke: '#fff', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-dasharray': '6 14', transform: 'translate(0,-2.2)' }, sg);
+      SLIDE_WATER.push({ n: w, o: run });
+      if (ri === 2) SLIDE_WATER[SLIDE_WATER.length - 1].o = SLIDE_RUN;
+      if (ri === 1) for (i = half, SLIDE_RUN = run; i < SLIDE.loopTo - 15; i++) SLIDE_RUN += Math.hypot(a[i + 1].sp[0] - a[i].sp[0], a[i + 1].sp[1] - a[i].sp[1]);
+      for (i = r[0]; i < r[1]; i++) run += Math.hypot(a[i + 1].sp[0] - a[i].sp[0], a[i + 1].sp[1] - a[i].sp[1]);
+    });
+    // lip at the end of the kicker
+    var e = a[a.length - 1].sp;
+    el('ellipse', { cx: e[0], cy: e[1], rx: 5.5, ry: 8, fill: shade(C.sky, 0.3), stroke: C.ink, 'stroke-width': 2.5 }, sg);
+  });
+  anim(function (t) { SLIDE_WATER.forEach(function (w) { w.n.setAttribute('stroke-dashoffset', (w.o - t * 90).toFixed(1)); }); });
+  // launch tower on the Workshop roof, right of the stop mat (so it never hides the hero
+  // standing there): a short open truss with a deck and a hand ladder on its front face.
+  // The hero climbs in front of the ladder, so nothing of the tower ever sits in front of it.
+  var TOWER = { x0: 14.4, x1: 14.95, y0: 3.5, y1: 4.05, z0: 2, z1: 3.3 };
+  item(14.68 + 3.78, function (g) {
+    var T0 = TOWER, x0 = T0.x0, x1 = T0.x1, y0 = T0.y0, y1 = T0.y1, z0 = T0.z0, z1 = T0.z1;
+    // legs and cross braces share one outline pass and one colour pass, so they join cleanly
+    var legs = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(function (c) { return [P(c[0], c[1], z0), P(c[0], c[1], z1), 5.5, 2.4]; });
+    var braces = [[[x1, y0, z0], [x1, y1, z1]], [[x1, y1, z0], [x1, y0, z1]]].map(function (b) { return [P(b[0][0], b[0][1], b[0][2]), P(b[1][0], b[1][1], b[1][2]), 3.8, 1.5]; });
+    var bars = braces.concat(legs);
+    bars.forEach(function (b) { line(g, b[0], b[1], { stroke: C.ink, 'stroke-width': b[2], 'stroke-linecap': 'round' }); });
+    bars.forEach(function (b) { line(g, b[0], b[1], { stroke: C.yellow, 'stroke-width': b[3], 'stroke-linecap': 'round' }); });
+    box(g, x0 - 0.05, y0 - 0.05, z1, x1 - x0 + 0.1, y1 - y0 + 0.1, 0.1, C.yellow, { top: shade(C.yellow, 0.55) });
+    // hand ladder on the front (+y) face, rails poking above the deck as grab handles
+    // all the outline first, then all the colour, so rungs and rails merge instead of cutting into each other
+    var lx0 = 14.55, lx1 = 14.8, ly = y1 + 0.06, top = z1 + 0.22, bars = [];
+    [lx0, lx1].forEach(function (x) { bars.push([P(x, ly, z0), P(x, ly, top)]); });
+    for (var r = z0 + 0.2; r < z1 + 0.05; r += 0.24) bars.push([P(lx0, ly, r), P(lx1, ly, r)]);
+    bars.forEach(function (b) { line(g, b[0], b[1], { stroke: C.ink, 'stroke-width': 4.6, 'stroke-linecap': 'round' }); });
+    bars.forEach(function (b) { line(g, b[0], b[1], { stroke: C.orange, 'stroke-width': 1.9, 'stroke-linecap': 'round' }); });
+  });
 
   ZONES.forEach(function (z, i) {
     var b = z.b;
@@ -507,7 +676,6 @@
       gear.setAttribute('d', gd + 'Z');
       el('circle', { r: 4.5, fill: '#fff', stroke: C.ink, 'stroke-width': 2 }, gearG);
       anim(function (t) { gear.setAttribute('transform', 'rotate(' + (t * 60 % 360).toFixed(1) + ')'); });
-      pad(g, 13.25, 4.56, 2);
     },
     function studio(g, b) {
       var cols = [C.orange, C.green, C.yellow];
@@ -541,7 +709,6 @@
           }
         });
       });
-      pad(g, 13.25, 9.62, 1);
     },
     function post(g, b) {
       var x = 12.15, y = 15.1, z = 1, w = 0.85, d = 0.85, h = 2;
@@ -669,7 +836,7 @@
 
   /* ---------- floating shapes ---------- */
   function floater(key, fn) { item(key, fn); }
-  [[9.6, 6.2, 1.0, C.pink], [15.8, 7.2, 1.6, C.yellow], [16.2, 13.5, 2.2, C.sky], [4.2, 19.2, 1.8, C.green], [5.6, 0.6, 4.6, C.orange]].forEach(function (f, i) {
+  [[9.6, 6.2, 1.0, C.pink], [21.4, 6.2, 1.6, C.yellow], [16.2, 13.5, 2.2, C.sky], [4.2, 19.2, 1.8, C.green], [5.6, 0.6, 4.6, C.orange]].forEach(function (f, i) {
     floater(f[0] + f[1], function (g) {
       var fg = el('g', null, g);
       box(fg, f[0], f[1], f[2], 0.6, 0.6, 0.6, f[3], { top: shade(f[3], 0.5) });
@@ -692,7 +859,7 @@
     anim(function (t) { sg.setAttribute('transform', 'translate(0,' + (Math.sin(t * 0.9 + ph) * 7 + quake(x, y) * 2).toFixed(1) + ')'); });
   }
   floater(17, function (g) { sphere(g, 7.2, 5.2, 1.2, 15, C.mint, 0); });
-  floater(20, function (g) { sphere(g, 16.6, 4.6, 2.6, 11, C.lilac, 2); });
+  floater(20, function (g) { sphere(g, 19.6, 2.2, 2.6, 11, C.lilac, 2); });
   floater(1, function (g) { sphere(g, 0.2, 6.8, 3.6, 9, C.sky, 4); });
   floater(4, function (g) {
     var p = P(9.8, 0.6, 4.4), pg = el('g', null, g);
@@ -817,6 +984,12 @@
         var u = k / 10, p = P(lerp(a[0], b[0], u), lerp(a[1], b[1], u), lerp(a[2], b[2], u) + hh * 4 * u * (1 - u));
         out.push(p);
       }
+    } else if (s.t === 'slide') {
+      var sl = SLIDE.pts.map(function (o) { return o.sp; });
+      if (a[1] > b[1]) sl.reverse();
+      out.push(P(a[0], a[1], a[2]));
+      out = out.concat(sl);
+      out.push(P(b[0], b[1], b[2] + 0.02));
     } else if (s.t === 'rope') {
       for (k = 1; k <= 8; k++) { u = k / 8; out.push(P(lerp(a[0], b[0], u), a[1], a[2] + 0.02)); }
     } else out.push(P(b[0], b[1], b[2] + 0.02));
@@ -863,21 +1036,47 @@
       s.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = f || 1200; g.gain.value = v || 0.08;
       s.connect(bp); bp.connect(g); g.connect(a.destination); s.start();
     }
+    // a looping rush of water for the slide; it keeps running silently once started
+    var wSrc = null, wFil = null, wGain = null;
+    function water(lv) {
+      if (!wGain && (!on || lv <= 0)) return;
+      var a = ac(); if (!a) return;
+      if (!wSrc) {
+        var n = a.sampleRate * 2, buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0), last = 0;
+        for (var i = 0; i < n; i++) { last = last * 0.6 + (Math.random() * 2 - 1) * 0.4; ch[i] = last; }
+        wSrc = a.createBufferSource(); wSrc.buffer = buf; wSrc.loop = true;
+        wFil = a.createBiquadFilter(); wFil.type = 'bandpass'; wFil.Q.value = 0.9;
+        wGain = a.createGain(); wGain.gain.value = 0;
+        wSrc.connect(wFil); wFil.connect(wGain); wGain.connect(a.destination); wSrc.start();
+      }
+      var t = a.currentTime, v = on && lv > 0 ? 0.03 + lv * 0.07 : 0;
+      wFil.frequency.setTargetAtTime(600 + lv * 1300 + Math.random() * 250, t, 0.04);
+      wGain.gain.setTargetAtTime(v, t, v ? 0.05 : 0.12);
+    }
     return {
-      step: function () { tone(150 + Math.random() * 50, 0.045, 'triangle', 0.035); },
+      // footsteps sound like what's underfoot: soft roof tap, sharper stair tick, hollow wooden bridge knock
+      step: function (kind) {
+        if (kind === 'stairs') { tone(250 + Math.random() * 60, 0.04, 'triangle', 0.04); noise(0.03, 0.025, 2600); }
+        else if (kind === 'bridge') { tone(105 + Math.random() * 25, 0.09, 'sine', 0.06, 0.8); noise(0.05, 0.03, 650); }
+        else tone(150 + Math.random() * 50, 0.045, 'triangle', 0.035);
+      },
+      water: water,
+      // flung off the lip: a watery plop and a spray
+      splash: function () { tone(240, 0.14, 'sine', 0.08, 3); noise(0.45, 0.08, 1100); },
       open: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.08, 'square', 0.03, 0, i * 0.055); }); },
       close: function () { tone(520, 0.1, 'square', 0.03, 0.5); },
       click: function () { tone(700, 0.035, 'square', 0.025); },
       boing: function () { tone(180, 0.38, 'sine', 0.09, 3.2); },
       land: function () { tone(110, 0.12, 'triangle', 0.08, 0.5); noise(0.08, 0.05, 500); },
       zip: function () { noise(0.5, 0.05, 2400); },
+      rewind: function () { for (var i = 0; i < 6; i++) tone(1400 - i * 120, 0.07, 'square', 0.02, 0.5, i * 0.06); noise(0.9, 0.03, 3200); },
       grab: function () { tone(330, 0.07, 'square', 0.03, 1.5); },
       thud: function () { tone(70, 0.3, 'sine', 0.14, 0.5); noise(0.2, 0.09, 300); },
       squeak: function () { tone(880 + Math.random() * 300, 0.12, 'sine', 0.06, 1.7); },
       pop: function () { tone(260, 0.06, 'square', 0.04, 2.5); },
       tone: tone,
       get on() { return on; },
-      set: function (v) { on = v; try { localStorage.setItem('city-sound', v ? '1' : '0'); } catch (e) {} if (v) ac(); }
+      set: function (v) { on = v; if (!v) water(0); try { localStorage.setItem('city-sound', v ? '1' : '0'); } catch (e) {} if (v) ac(); }
     };
   })();
 
@@ -1363,6 +1562,131 @@
       H.sp = sp;
     }
 
+    /* water slide: climb the tower, ride the track, pop out onto the studio mat.
+       Going 06 → 05 plays the very same ride backwards, like scrubbing a timeline. */
+    var RW = null;
+    function rewind(on, sec) {
+      if (!RW) {
+        RW = document.createElement('div');
+        RW.className = 'rw';
+        RW.setAttribute('aria-hidden', 'true');
+        RW.innerHTML = '<div class="rw-tag"><svg viewBox="0 0 44 28"><path d="M22,2 L2,14 L22,26 Z M42,2 L22,14 L42,26 Z" fill="#fff" stroke="#16161d" stroke-width="2.5" stroke-linejoin="round"/></svg><span>REWIND</span></div><div class="rw-tc"></div><div class="rw-band"></div>';
+        document.body.appendChild(RW);
+      }
+      RW.classList.toggle('on', on);
+      if (sec != null) {
+        var f = Math.max(0, Math.round(sec * 25));
+        RW.lastChild.previousSibling.textContent = '00:00:' + ('0' + Math.floor(f / 25)).slice(-2) + ':' + ('0' + f % 25).slice(-2);
+      }
+    }
+    function slideUpdate(s, blink, dt) {
+      var rev = s.a[1] > s.b[1], dur = s.dur;
+      var tau = rev ? dur - H.segT : H.segT, o, sp, ft = SLIDE.foot, tp = SLIDE.top;
+      H.isBack = false;
+      s.gz = null;
+      SLIDE_OVER.setAttribute('display', 'none');
+      // the deck sits just under the Workshop tag, and the lip and the somersault pass right
+      // under the studio's: let each step back while the hero is there
+      if (TAGS[4]) TAGS[4].g.style.opacity = tau > SLIDE_IN * 0.5 && tau < SLIDE_IN + 0.5 ? 0.2 : '';
+      if (TAGS[5]) TAGS[5].g.style.opacity = tau > SLIDE_IN + SLIDE.T - 0.7 && tau < SLIDE_IN + SLIDE.T + 0.9 ? 0.2 : '';
+      if (rev) {
+        if (!s.rw) { s.rw = 1; SFX.rewind(); }
+        rewind(H.segT < dur - 0.02, tau);
+      }
+      if (tau < SLIDE_IN) {
+        SFX.water(0);
+        // hand over hand up the ladder (back to the camera), then step onto the deck
+        var c = tau / SLIDE_IN, lc = clamp(c / 0.78, 0, 1), cl = Math.sin(lc * Math.PI * 7);
+        if (c < 0.78) {
+          H.isBack = true;
+          H.x = ft[0]; H.y = ft[1]; H.z = lerp(ft[2], tp[2], lc);
+          o = { bob: 0, fL: [-3, -Math.max(0, cl) * 6], fR: [3, -Math.max(0, -cl) * 6], kL: -Math.max(0, cl) * 4, kR: -Math.max(0, -cl) * 4, hB: [-6, -52 - cl * 5], hF: [6, -52 + cl * 5], eB: 3, eF: -3, blink: blink };
+        } else {
+          var st2 = (c - 0.78) / 0.22;
+          H.face = 1;
+          H.x = lerp(ft[0], tp[0], st2); H.y = lerp(ft[1], tp[1], st2); H.z = tp[2] + Math.sin(st2 * Math.PI) * 0.12;
+          o = { bob: 1, fL: [-4, -3 * Math.sin(st2 * Math.PI)], fR: [4, 0], kL: 3, kR: -3, hB: [-11, -16], hF: [11, -16], blink: blink };
+        }
+        pose(o);
+        sp = P(H.x, H.y, H.z);
+        place(sp);
+        s.gz = H.z;
+        s.st = 0;
+      } else if (tau < SLIDE_IN + SLIDE.T) {
+        if (!rev && !s.st) { s.st = 1; SFX.zip(); }
+        var at = slideAt(tau - SLIDE_IN);
+        // water rushes louder and brighter the faster the rider goes
+        if (s.wp) { var spd = Math.hypot(at.p[0] - s.wp[0], at.p[1] - s.wp[1], at.p[2] - s.wp[2]) / Math.max(dt, 1e-3); SFX.water(rev ? 0 : clamp(spd / 9, 0.25, 1)); }
+        s.wp = at.p;
+        var over = at.i < SLIDE.loopFrom + 18 && at.i > SLIDE.loopFrom - 18;
+        SLIDE_OVER.setAttribute('display', over ? '' : 'none');
+        if (over && L.sky.lastChild !== SLIDE_OVER) L.sky.appendChild(SLIDE_OVER);
+        H.x = at.p[0]; H.y = at.p[1]; H.z = at.p[2];
+        var ang = Math.atan2(at.d[1], at.d[0]) * 180 / Math.PI, vis;
+        // which way the rider faces: in the loop the way it entered (so it turns all the way
+        // round); elsewhere the way it's heading, switching only once the track clearly turns
+        var lf = SLIDE.pts[SLIDE.loopFrom], lp = SLIDE.pts[SLIDE.loopFrom - 1];
+        var tf = at.loop ? (lf.sp[0] >= lp.sp[0] ? 1 : -1)
+          : Math.abs(at.d[0]) > 0.35 * Math.hypot(at.d[0], at.d[1]) ? (at.d[0] >= 0 ? 1 : -1) : (s.tf || 1);
+        s.tf = tf;
+        vis = tf > 0 ? ang : ang - 180;
+        vis = ((vis + 540) % 360) - 180;
+        if (!at.loop) vis = 70 * Math.tanh(vis / 70);
+        // tilt and facing ease toward their targets instead of snapping, so nothing jerks
+        if (!s.ri) { s.ri = 1; s.rv = 0; s.fv = tf; }
+        s.rv += (((vis - s.rv + 540) % 360) - 180) * Math.min(1, dt * 14);
+        s.fv += (tf - s.fv) * Math.min(1, dt * 12);
+        H.face = Math.abs(s.fv) < 0.1 ? (s.fv < 0 ? -0.1 : 0.1) : s.fv;
+        var wob = Math.sin(H.segT * 30) * 1.5;
+        o = { bob: 0, fL: [10, -14 + wob], fR: [12.5, -12 - wob], kL: -2, kR: -2, sL: -10, sR: -10, hB: [-7, -50], hF: [9, -52], eB: 3, eF: -4, mouth: 'o', tilt: -4, blink: false };
+        pose(o);
+        sp = P(H.x, H.y, H.z);
+        place(sp, s.rv * (H.face < 0 ? -1 : 1), 21);
+        s.lv = s.rv;
+        sp = [sp[0], sp[1] - 6];
+        // spray off the track now and then
+        if (!rev && Math.random() < 0.2) splash(sp, at.d);
+      } else {
+        // thrown off the lip: a tucked somersault on the way down, then a heavy landing
+        SFX.water(0);
+        if (!rev && !s.fl) { s.fl = 1; SFX.splash(); for (var sk = 0; sk < 7; sk++) splash(P(SLIDE.pts[SLIDE.pts.length - 1].p[0], SLIDE.pts[SLIDE.pts.length - 1].p[1], SLIDE.pts[SLIDE.pts.length - 1].p[2]), [-30, 10]); }
+        var e = SLIDE.pts[SLIDE.pts.length - 1].p, mat = rev ? s.a : s.b, AIR = RM ? 0.03 : 0.95;
+        var w = clamp((tau - SLIDE_IN - SLIDE.T) / AIR, 0, 1);
+        H.face = -1;
+        var wh = 1 - (1 - w) * (1 - w);
+        H.x = lerp(e[0], mat[0], wh); H.y = lerp(e[1], mat[1], wh);
+        H.z = lerp(e[2], mat[2], w * w) + 0.55 * 4 * w * (1 - w);
+        if (w < 1) {
+          // tuck while spinning, open up just before touching down
+          var tk = Math.sin(Math.PI * clamp(w / 0.85, 0, 1));
+          o = { bob: 4 * tk, fL: [lerp(-5, 6, tk), lerp(-4, -16, tk)], fR: [lerp(5, 8, tk), lerp(-2, -14, tk)], kL: -5 - 4 * tk, kR: 5 - 8 * tk, hB: [lerp(-9, 4, tk), lerp(-46, -20, tk)], hF: [lerp(9, 10, tk), lerp(-48, -22, tk)], eB: -4, eF: 4, mouth: 'o', blink: tk > 0.6 };
+          pose(o);
+          // the spin carries on from the tilt it left the lip with and ends upright; same pivot
+          // as on the track, sliding down to the feet by touchdown, so nothing jumps
+          var lv = s.lv == null ? 0 : s.lv, va = lerp(lv, -360, 1 - Math.pow(1 - clamp(w / 0.85, 0, 1), 2));
+          sp = P(H.x, H.y, H.z);
+          place([sp[0], sp[1] - 21 * H.scale * w], -va, 21);
+          s.gz = H.z;
+          s.ld = 0;
+          H.sp = sp;
+          return;
+        }
+        if (!rev && !s.ld) { s.ld = 1; squash(0.55); SFX.land(); impact(H.x, H.y, H.z, 0.85); }
+        var lk = Math.max(0, 1 - (tau - SLIDE_IN - SLIDE.T - AIR) / (SLIDE_OUT - AIR));
+        o = { bob: 2 + 5 * lk, fL: [-6 - 2 * lk, 0], fR: [6 + 2 * lk, 0], kL: 3 + 4 * lk, kR: -3 - 4 * lk, hB: [-13 - 5 * lk, -18 + 3 * lk], hF: [13 + 5 * lk, -18 + 3 * lk], mouth: lk > 0.5 ? 'flat' : null, blink: blink };
+        pose(o);
+        sp = P(H.x, H.y, H.z);
+        place(sp);
+        s.gz = H.z;
+      }
+      H.sp = sp;
+    }
+    function splash(sp, d) {
+      var l = Math.hypot(d[0], d[1]) || 1, side = Math.random() < 0.5 ? 1 : -1;
+      var c = el('circle', { cx: sp[0], cy: sp[1] + 8, r: 2.2, fill: '#fff', stroke: C.sky, 'stroke-width': 1.4 }, L.fx);
+      PARTS.push({ n: c, x: sp[0], y: sp[1] + 8, vx: -d[0] / l * 40 + side * -d[1] / l * 50, vy: -30 - Math.random() * 40, r: 0.8 + Math.random(), life: 0.22 + Math.random() * 0.12, max: 0.34 });
+    }
+
     H.update = function (dt, t) {
       H.sqT += dt;
       H.blinkT -= dt;
@@ -1385,7 +1709,7 @@
           var spd = s.len / s.dur;
           var prev = Math.sin(H.phase);
           H.phase += dt * spd * (s.t === 'stairs' ? 6.5 : 5.4);
-          if ((prev < 0) !== (Math.sin(H.phase) < 0)) SFX.step();
+          if ((prev < 0) !== (Math.sin(H.phase) < 0)) SFX.step(s.t === 'stairs' ? 'stairs' : onBridge(H.x, H.y) ? 'bridge' : null);
           H.x = lerp(a[0], b[0], u); H.y = lerp(a[1], b[1], u); H.z = lerp(a[2], b[2], u);
           var sn = Math.sin(H.phase), cs = Math.cos(H.phase);
           var stride = s.t === 'stairs' ? 5 : 6.5, lift = s.t === 'stairs' ? 6.5 : 4.5;
@@ -1440,6 +1764,10 @@
           }
           gz = null;
           if (!s.zipped) { s.zipped = 1; SFX.grab(); setTimeout(SFX.zip, 120); }
+        } else if (s.t === 'slide') {
+          slideUpdate(s, blink, dt);
+          sp = H.sp;
+          gz = s.gz;
         } else if (s.t === 'jump' || s.t === 'hop') {
           var isHop = s.t === 'hop';
           var ant = isHop ? 0.07 : 0.26, landT = isHop ? 0.06 : 0.34, air = s.dur - ant - landT, arcH = isHop ? 0.9 : 2.4;
@@ -1511,6 +1839,11 @@
     };
 
     function nextSeg() {
+      if (RW) rewind(false);
+      if (SLIDE_OVER) SLIDE_OVER.setAttribute('display', 'none');
+      SFX.water(0);
+      if (TAGS[4]) TAGS[4].g.style.opacity = '';
+      if (TAGS[5]) TAGS[5].g.style.opacity = '';
       H.seg = H.queue.shift() || null;
       H.segT = 0;
       if (!H.seg) {
@@ -1549,6 +1882,7 @@
         else if (s.t === 'stairs') s.dur = s.len / (speed * 0.75);
         else if (s.t === 'rope') s.dur = RM ? 0.3 : 0.42 + s.len / 1.9;
         else if (s.t === 'jump') s.dur = RM ? 0.3 : 1.45;
+        else if (s.t === 'slide') s.dur = SLIDE_IN + SLIDE.T + SLIDE_OUT;
         else if (s.t === 'hop') s.dur = RM ? 0.2 : 0.52;
         s.dur = Math.max(s.dur, 0.05);
       });
@@ -1640,7 +1974,7 @@
     { type: 'ease', col: C.green, a: [3.6, 9.25], b: [3.6, 9.75], z: 2 },
     { type: 'hold', col: C.yellow, a: [1.45, 3.6], b: [1.45, 4.75], z: 3 },
     { type: 'bezier', col: C.pink, a: [7.5, 4.75], b: [9.6, 4.75], z: 3 },
-    { type: 'easeIn', col: C.purple, a: [14.65, 4.75], b: [14.65, 3.3], z: 2 },
+    { type: 'easeIn', col: C.purple, a: [12.3, 3.62], b: [12.95, 3.62], z: 2 },
     { type: 'easeOut', col: C.orange, a: [12.4, 11.1], b: [12.6, 11.8], z: 1 },
     { type: 'bezier', col: C.lilac, a: [14.4, 17.3], b: [14.4, 17.75], z: 1 },
     { type: 'hold', col: C.mint, a: [8.45, 2.55], b: [9.45, 2.75], z: 4.4, small: 1 }
@@ -2376,7 +2710,16 @@
     var flying = hero.mode === 'travel';
     if ((frameN++ & 7) === 0 || flying !== (heroWrap.parentNode === L.sky)) {
       var list = CRE.map(function (c) { return { n: c.g, y: c.sy || 0 }; });
-      if (flying) { if (heroWrap.parentNode !== L.sky) L.sky.appendChild(heroWrap); }
+      if (flying) {
+        if (heroWrap.parentNode !== L.sky) L.sky.appendChild(heroWrap);
+        // the moving hero rides above everything, except a creature standing nearer the viewer
+        // close by on screen: that one is lifted above the hero until it's passed
+        list = list.filter(function (it, i) {
+          var c = CRE[i], front = c.x + c.y > hero.x + hero.y + 0.25 && Math.abs((c.x - c.y) - (hero.x - hero.y)) < 1.6;
+          if (front) { L.sky.appendChild(c.g); return false; }
+          return true;
+        });
+      }
       else list.push({ n: heroWrap, y: hero.char === 'astro' ? P(hero.x, hero.y, hero.z)[1] : (hero.sp ? hero.sp[1] : 0) + (hero.mode === 'travel' && hero.seg && hero.seg.t === 'rope' ? 60 : 0) });
       list.sort(function (a, b) { return a.y - b.y; });
       list.forEach(function (it) { L.actors.appendChild(it.n); });
