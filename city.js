@@ -619,9 +619,61 @@
   }
 
   // one bigger feature wall (the cinema's side): a different European craft each season
+  // FW_BANDS: the cinema's side gets two matching strips (top and bottom edge) instead of one centred panel
+  var FW_BANDS = false;
+  function featureStrip(g, n) {
+    var W = 86, H = 20, k;
+    var ink = function (o) { return Object.assign({ stroke: C.ink, 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, o); };
+    // spring: a strip of wooden lattice with roses
+    var sp = sgroup(g, 'spring'), cp = el('clipPath', { id: 'fwS' + n }, defs), d = '';
+    el('rect', { x: 0, y: 0, width: W, height: H }, cp);
+    for (k = -H; k < W + H; k += 9) d += 'M' + k + ',' + H + 'L' + (k + H) + ',0M' + k + ',0L' + (k + H) + ',' + H;
+    var lat = el('g', { 'clip-path': 'url(#fwS' + n + ')' }, sp);
+    el('path', { d: d, stroke: C.ink, 'stroke-width': 3 }, lat);
+    el('path', { d: d, stroke: '#d9a873', 'stroke-width': 1.5 }, lat);
+    el('rect', ink({ x: 0, y: 0, width: W, height: H, fill: 'none', stroke: '#8a5a3b', 'stroke-width': 2 }), sp);
+    for (k = 0; k < 5; k++) {
+      var rx = 9 + k * 17, ry = k % 2 ? 13 : 7;
+      el('ellipse', ink({ cx: rx + 3, cy: ry + 2, rx: 2.2, ry: 1.3, fill: '#3aa36c', 'stroke-width': 0.6, transform: 'rotate(30,' + (rx + 3) + ',' + (ry + 2) + ')' }), sp);
+      el('circle', ink({ cx: rx, cy: ry, r: 2.8, fill: k % 2 ? '#ff7eb9' : '#e5435a', 'stroke-width': 0.8 }), sp);
+    }
+    // summer: one row of azulejo tiles
+    var su = sgroup(g, 'summer'), T = W / 6;
+    for (k = 0; k < 6; k++) {
+      var x = k * T, cx = x + T / 2, cy = H / 2;
+      el('rect', { x: x, y: 0, width: T, height: H, fill: '#f7fbff', stroke: '#9ec3e6', 'stroke-width': 0.7 }, su);
+      for (var m = 0; m < 4; m++) el('ellipse', { cx: cx, cy: cy - 3.2, rx: 1.6, ry: 3, fill: '#2d6fc1', transform: 'rotate(' + (m * 90) + ',' + cx + ',' + cy + ')' }, su);
+      el('circle', { cx: cx, cy: cy, r: 1.3, fill: '#f2b33d' }, su);
+      el('path', { d: 'M' + x + ',0 m3.5,0 a3.5,3.5 0 0 1 -3.5,3.5 Z M' + (x + T) + ',' + H + ' m-3.5,0 a3.5,3.5 0 0 1 3.5,-3.5 Z', fill: '#2d6fc1' }, su);
+    }
+    el('rect', { x: 0, y: 0, width: W, height: H, fill: 'none', stroke: C.ink, 'stroke-width': 1.2 }, su);
+    // autumn: a folk-art row of little round trees
+    var au = sgroup(g, 'autumn');
+    el('rect', ink({ x: 0, y: 0, width: W, height: H, rx: 2, fill: '#f6e2c2' }), au);
+    el('rect', { x: 2.5, y: 2.5, width: W - 5, height: H - 5, rx: 1.5, fill: 'none', stroke: '#c9682a', 'stroke-width': 0.9, 'stroke-dasharray': '1.2 2.2', 'stroke-linecap': 'round' }, au);
+    for (k = 0; k < 6; k++) {
+      var tx = 8 + k * 14;
+      el('path', { d: 'M' + tx + ',16 V11', stroke: '#7a4630', 'stroke-width': 1.4 }, au);
+      el('circle', ink({ cx: tx, cy: 8.5, r: 4, fill: ['#e5532f', '#ff8a2c', '#ffc233'][k % 3], 'stroke-width': 0.9 }), au);
+      el('circle', { cx: tx, cy: 8.5, r: 1, fill: '#fff6e0' }, au);
+    }
+    // winter: Nordic stars on navy
+    var wi = sgroup(g, 'winter');
+    el('rect', ink({ x: 0, y: 0, width: W, height: H, rx: 2, fill: '#27325e' }), wi);
+    for (k = 0; k < 6; k++) {
+      var sx = 8 + k * 14, d3 = '';
+      for (var q = 0; q < 16; q++) { var a = -Math.PI / 2 + q * Math.PI / 8, rr2 = q % 2 ? 2.2 : 5.4; d3 += (q ? 'L' : 'M') + (sx + Math.cos(a) * rr2).toFixed(1) + ',' + (10 + Math.sin(a) * rr2).toFixed(1); }
+      el('path', { d: d3 + 'Z', fill: '#fff' }, wi);
+      if (k < 5) el('circle', { cx: sx + 7, cy: 10, r: 1, fill: '#ff6b6b' }, wi);
+    }
+  }
   function featureWall(i, fr) {
     if (i !== 2) return;
-    var g = el('g', { transform: 'translate(0.5,1.4) scale(0.0234375)' }, fr);   // 3/4 size, centred in the free wall
+    if (FW_BANDS) {
+      [0.3, 2.3].forEach(function (v, n) { featureStrip(el('g', { transform: 'translate(0.15,' + v + ') scale(0.03125)' }, fr), n); });
+      return;
+    }
+    var g = el('g', { transform: 'translate(0.5,0.7) scale(0.0234375)' }, fr);   // 3/4 size, upper middle of the bare wall
     var W = 86, H = 54, k, j;
     var ink = function (o) { return Object.assign({ stroke: C.ink, 'stroke-width': 1.3, 'stroke-linejoin': 'round' }, o); };
     var cp = el('clipPath', { id: 'fwClip' }, defs);
@@ -720,8 +772,10 @@
       var fl = el('g', { transform: faceL(b[0], b[1], 0, b[2], b[3], b[4]) }, zg);
       var fr = el('g', { transform: faceR(b[0], b[1], 0, b[2], b[3], b[4]) }, zg);
       var w0 = WINS.length;
-      for (var k = 0; k < b[2]; k++) if (b[4] >= 1) arch(fl, k + 0.32, b[4] - 0.85, 0.36, 0.6, shade(z.col, -0.55));
-      for (k = 0; k < b[3]; k++) if (b[4] >= 2 && k !== 1) arch(fr, k + 0.32, 0.35, 0.36, 0.6, shade(z.col, -0.6));
+      // long walls keep just the two end windows, high up on tall walls; every building has its windows on this face
+      var lv = b[4] >= 2 ? 0.35 : b[4] - 0.85;
+      var lp = b[2] < 3 ? [0.32, 1.32].slice(0, b[2]) : [0.32, b[2] - 0.68];
+      lp.forEach(function (u) { arch(fl, u, lv, 0.36, 0.6, shade(z.col, -0.55)); });
       winDecor(i, w0); band(i, fl, fr); featureWall(i, fr);
       var sn = NODES[STOP_NODE[i]].p, m = 0.42;
       poly(zg, [P(sn[0] - m, sn[1] - m, b[4]), P(sn[0] + m, sn[1] - m, b[4]), P(sn[0] + m, sn[1] + m, b[4]), P(sn[0] - m, sn[1] + m, b[4])], shade(z.col, 0.55), { 'stroke-width': 1.6 });
@@ -1130,8 +1184,8 @@
     }
   }
   // street lamps: posts along the decks, a warm head and a pool of light on the ground at night
-  var LAMPS = [[2.2, 15.0, 1, 18.7], [4.6, 16.3, 1], [7.95, 15.12, 1, 24.6], [12.2, 17.8, 1], [14.6, 15.4, 1], [12.25, 11.75, 1],
-    [2.2, 8.0, 2, 10.6], [3.75, 9.3, 2], [3.7, 2.3, 3], [7.25, 2.7, 3, 12.05], [15.65, 13.45, 0], [20.5, 17.9, 0]];
+  var LAMPS = [[2.2, 15.0, 1, 18.7], [7.95, 15.12, 1, 24.6], [12.2, 17.8, 1], [12.25, 11.75, 1],
+    [2.2, 8.0, 2, 10.6], [3.7, 2.3, 3], [7.25, 2.7, 3, 12.05], [20.5, 17.9, 0]];
   var LAMPF = [];
   function lampArt(lg, b, hgt, glow) {
     if (glow) el('ellipse', { class: 'on-night glow', cx: b[0], cy: b[1], rx: 42, ry: 21, fill: 'url(#glowPool)' }, lg);
@@ -3010,10 +3064,9 @@
       el('path', { class: 'ss ss-winter', d: 'M-10.5,-33 Q-9,-42 0,-41.5 Q9,-42 10.5,-33 q-3,3 -5,0 q-3,3 -5.5,0 q-3,3 -5.5,0 q-2,2 -4,0 Z', fill: '#fbfdff', stroke: C.ink, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, tr.sway);
     });
 
-    /* ---- lit windows: about two in three glow at night, a few flick on and off ---- */
+    /* ---- lit windows: every window glows at night; now and then one flicks off for a moment ---- */
     var WL = [];
     WINS.forEach(function (w, i) {
-      if (srand(i + 40)() > 0.7) return;
       // a round lamp-style glow drawn in screen space, so it isn't squashed onto the wall's plane
       var m = svg.createSVGMatrix();
       for (var a = w.g; a && a !== L.world; a = a.parentNode) {
@@ -3280,10 +3333,13 @@
         if (b.f !== f) { b.n.setAttribute('fill', f); b.f = f; }
       });
       // a window now and then switches off or back on
-      if (night && WL.length && Math.random() < dt * 0.5) {
+      if (night && WL.length && Math.random() < dt * 0.15) {
         var w = WL[Math.random() * WL.length | 0];
-        w.on = !w.on; w.w.n.classList.toggle('win-lit', w.on); w.halo.style.display = w.on ? '' : 'none';
+        if (w.on) { w.on = false; w.back = 2 + Math.random() * 4; w.w.n.classList.remove('win-lit'); w.halo.style.display = 'none'; }
       }
+      WL.forEach(function (w) {
+        if (!w.on && (w.back -= dt) <= 0) { w.on = true; w.w.n.classList.add('win-lit'); w.halo.style.display = ''; }
+      });
       if (night) {
         var sp = (t * 0.9) % 1;
         ball.setAttribute('transform', 'translate(0,' + (Math.sin(t * 1.6) * 3).toFixed(1) + ')');
