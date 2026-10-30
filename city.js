@@ -83,6 +83,7 @@
     actors: el('g', null, cam),
     tags: el('g', null, cam),
     sky: el('g', { 'pointer-events': 'none' }, cam),
+    over: el('g', { 'pointer-events': 'none' }, cam),   // front copies of thin props, shown when an actor walks behind them
     fx: el('g', { 'pointer-events': 'none' }, cam)
   };
   var gcache = {};
@@ -101,6 +102,7 @@
 
   /* ---------- iso primitives ---------- */
   var BOXES = [];   // footprints of everything solid, used by the occlusion audit
+  var TOPS = [], WINS = [], TREES = [];   // box tops (snow), arched windows (lit at night), trees (seasonal crowns)
   function box(g, x, y, z, w, d, h, col, o) {
     o = o || {};
     BOXES.push({ x: x, y: y, z: z, w: w, d: d, h: h, g: g });
@@ -120,6 +122,7 @@
       for (var j = 1; j < d; j++) line(gg, P(x, y + j, t), P(x + w, y + j, t));
       poly(g, T, 'none', { 'stroke-width': sw });
     }
+    if (!o.nosnow) TOPS.push({ g: g, after: g.lastChild, T: T, w: w, d: d });
     return { top: top, T: T };
   }
   function line(g, a, b, extra) {
@@ -135,7 +138,9 @@
   function arch(g, s, t, w, h, fill) {
     var r = w / 2;
     var d = 'M' + s + ',' + (t + h) + ' V' + (t + r) + ' A' + r + ',' + r + ' 0 0 1 ' + (s + w) + ',' + (t + r) + ' V' + (t + h) + ' Z';
-    return el('path', { d: d, fill: fill || C.ink, stroke: C.ink, 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
+    var e = el('path', { d: d, fill: fill || C.ink, stroke: C.ink, 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
+    WINS.push({ n: e, g: g, cx: s + w / 2, cy: t + h / 2, w: w, h: h, d: d });
+    return e;
   }
   function stairs(g, axis, from, to, other, z0, z1, col) {
     // axis 'y' or 'x'; steps go from `from` (at z0) to `to` (at z1)
@@ -253,8 +258,9 @@
     var sway = el('g', null, tg);
     el('ellipse', { cx: 0, cy: 0, rx: 9, ry: 4.5, fill: 'rgba(22,22,29,.15)' }, tg);
     el('path', { d: 'M0,0 V-22', stroke: C.ink, 'stroke-width': 3.5, 'stroke-linecap': 'round' }, sway);
-    el('circle', { cx: 0, cy: -30, r: 11, fill: col, stroke: C.ink, 'stroke-width': 2 }, sway);
+    var crown = el('circle', { cx: 0, cy: -30, r: 11, fill: col, stroke: C.ink, 'stroke-width': 2 }, sway);
     el('path', { d: 'M-5,-35 q3,-4 7,-3', stroke: '#fff', 'stroke-width': 2.2, fill: 'none', 'stroke-linecap': 'round', opacity: 0.8 }, sway);
+    TREES.push({ crown: crown, col: col, sway: sway });
     var ph = Math.random() * 6;
     anim(function (t) { sway.setAttribute('transform', 'rotate(' + (Math.sin(t * 1.6 + ph) * 4 + quake(x, y) * 3).toFixed(2) + ')'); });
   }
@@ -488,9 +494,9 @@
       var d = '', sg = r[2];
       for (var i = r[0]; i <= r[1]; i++) d += (i > r[0] ? ' L' : 'M') + a[i].sp[0].toFixed(1) + ',' + a[i].sp[1].toFixed(1);
       el('path', { d: d, fill: 'none', stroke: C.ink, 'stroke-width': 17, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }, sg);
-      el('path', { d: d, fill: 'none', stroke: C.sky, 'stroke-width': 11.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }, sg);
-      el('path', { d: d, fill: 'none', stroke: shade(C.sky, 0.45), 'stroke-width': 4, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt', transform: 'translate(0,-2.2)' }, sg);
-      var w = el('path', { d: d, fill: 'none', stroke: '#fff', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-dasharray': '6 14', transform: 'translate(0,-2.2)' }, sg);
+      el('path', { d: d, fill: 'none', stroke: C.sky, 'stroke-width': 11.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt', 'data-slide': 'body' }, sg);
+      el('path', { d: d, fill: 'none', stroke: shade(C.sky, 0.45), 'stroke-width': 4, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt', transform: 'translate(0,-2.2)', 'data-slide': 'hi' }, sg);
+      var w = el('path', { d: d, class: 'slide-water', fill: 'none', stroke: '#fff', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-dasharray': '6 14', transform: 'translate(0,-2.2)' }, sg);
       SLIDE_WATER.push({ n: w, o: run });
       if (ri === 2) SLIDE_WATER[SLIDE_WATER.length - 1].o = SLIDE_RUN;
       if (ri === 1) for (i = half, SLIDE_RUN = run; i < SLIDE.loopTo - 15; i++) SLIDE_RUN += Math.hypot(a[i + 1].sp[0] - a[i].sp[0], a[i + 1].sp[1] - a[i].sp[1]);
@@ -498,7 +504,7 @@
     });
     // lip at the end of the kicker
     var e = a[a.length - 1].sp;
-    el('ellipse', { cx: e[0], cy: e[1], rx: 5.5, ry: 8, fill: shade(C.sky, 0.3), stroke: C.ink, 'stroke-width': 2.5 }, sg);
+    el('ellipse', { cx: e[0], cy: e[1], rx: 5.5, ry: 8, fill: shade(C.sky, 0.3), stroke: C.ink, 'stroke-width': 2.5, 'data-slide': 'lip' }, sg);
   });
   anim(function (t) { SLIDE_WATER.forEach(function (w) { w.n.setAttribute('stroke-dashoffset', (w.o - t * 90).toFixed(1)); }); });
   // launch tower on the Workshop roof, right of the stop mat (so it never hides the hero
@@ -523,6 +529,188 @@
     bars.forEach(function (b) { line(g, b[0], b[1], { stroke: C.orange, 'stroke-width': 1.9, 'stroke-linecap': 'round' }); });
   });
 
+  /* ---------- light seasonal touches around some zone windows (European street style) ---------- */
+  // spring flower boxes, summer striped awnings, autumn ivy, winter pine swags; drawn in px around the arch
+  // two quiet strips that belong to the same family as the cinema's feature wall each season,
+  // but each with its own motif: v 0 on the Stats Tower, v 1 on the Motion Studio
+  var BANDS = { 1: ['r', 0.12, 1.25, 0], 5: ['r', 0.1, 0.2, 1] };   // zone -> face, u, v of an 86x22px strip, variant
+  function band(i, fl, fr) {
+    var p = BANDS[i];
+    if (!p) return;
+    var g = el('g', { transform: 'translate(' + p[1] + ',' + p[2] + ') scale(0.03125)' }, p[0] === 'l' ? fl : fr);
+    var W = 86, H = 22, v = p[3], k, d;
+    var ink = function (o) { return Object.assign({ stroke: C.ink, 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, o); };
+    function rose(sg, x, y) {
+      el('circle', ink({ cx: x, cy: y, r: 2.8, fill: '#ff7eb9', 'stroke-width': 0.8 }), sg);
+      el('path', { d: 'M' + (x - 1) + ',' + y + ' a1,1 0 1 1 1,1', fill: 'none', stroke: 'rgba(22,22,29,.55)', 'stroke-width': 0.6 }, sg);
+    }
+    function lf(sg, x, y, r) { el('ellipse', ink({ cx: x, cy: y, rx: 2.3, ry: 1.3, fill: '#3aa36c', 'stroke-width': 0.6, transform: 'rotate(' + r + ',' + x + ',' + y + ')' }), sg); }
+
+    // SPRING — garden: a picket fence with roses / a draped leafy vine
+    var sp = sgroup(g, 'spring');
+    if (v === 0) {
+      el('path', { d: 'M0,14 H86 M0,19 H86', stroke: C.ink, 'stroke-width': 3.2 }, sp);
+      el('path', { d: 'M0,14 H86 M0,19 H86', stroke: '#d9a873', 'stroke-width': 1.6 }, sp);
+      for (k = 0; k < 9; k++) { var px = 4 + k * 9.8; el('path', ink({ d: 'M' + (px - 2) + ',22 V7 l2,-3 l2,3 V22 Z', fill: '#e8c08f' }), sp); }
+      [[12, 9], [36, 8], [61, 9], [79, 8]].forEach(function (r) { lf(sp, r[0] + 3, r[1] + 3, 30); rose(sp, r[0], r[1]); });
+    } else {
+      d = 'M0,4 Q21.5,16 43,4 Q64.5,16 86,4';
+      el('path', { d: d, fill: 'none', stroke: '#2f7d55', 'stroke-width': 1.6 }, sp);
+      for (k = 1; k < 12; k++) { if (k === 6) continue; var t = (k % 6) / 6; lf(sp, k * 86 / 12, 4 + 24 * t * (1 - t) + (k % 2 ? -1.6 : 1.6), k % 2 ? 35 : -35); }
+      rose(sp, 21.5, 10); rose(sp, 64.5, 10);
+    }
+
+    // SUMMER — azulejo: a wave frieze / three loose tiles
+    var su = sgroup(g, 'summer'), T = 14;
+    if (v === 0) {
+      for (k = 0; k < 6; k++) {
+        var x = 1 + k * T, tg = el('g', null, su);
+        el('rect', { x: x, y: 4, width: T, height: T, fill: '#f7fbff', stroke: '#9ec3e6', 'stroke-width': 0.7 }, tg);
+        el('path', { d: 'M' + x + ',14 q3.5,-6 7,0 t7,0 M' + x + ',9 q3.5,-4 7,0 t7,0', fill: 'none', stroke: '#2d6fc1', 'stroke-width': 1.4 }, tg);
+      }
+      el('rect', { x: 1, y: 4, width: T * 6, height: T, fill: 'none', stroke: C.ink, 'stroke-width': 1.2 }, su);
+    } else {
+      [14, 43, 72].forEach(function (cx, n) {
+        var tg = el('g', { transform: 'rotate(' + [-4, 3, -2][n] + ',' + cx + ',11)' }, su);
+        el('rect', ink({ x: cx - 8, y: 3, width: 16, height: 16, fill: '#f7fbff' }), tg);
+        el('rect', { x: cx - 6, y: 5, width: 12, height: 12, fill: 'none', stroke: '#2d6fc1', 'stroke-width': 0.9 }, tg);
+        var d2 = '';
+        for (var q = 0; q < 8; q++) { var a = q * Math.PI / 4 - Math.PI / 2, r = q % 2 ? 2 : 5; d2 += (q ? 'L' : 'M') + (cx + Math.cos(a) * r).toFixed(1) + ',' + (11 + Math.sin(a) * r).toFixed(1); }
+        el('path', { d: d2 + 'Z', fill: '#2d6fc1' }, tg);
+        el('circle', { cx: cx, cy: 11, r: 1.2, fill: '#f2b33d' }, tg);
+      });
+    }
+
+    // AUTUMN — folk art on cream: a tulip-and-dot border / two birds and a heart
+    var au = sgroup(g, 'autumn');
+    if (v === 0) {
+      el('rect', ink({ x: 0, y: 2, width: W, height: 18, rx: 2, fill: '#f6e2c2' }), au);
+      el('rect', { x: 2.5, y: 4.5, width: W - 5, height: 13, rx: 1.5, fill: 'none', stroke: '#c9682a', 'stroke-width': 1, 'stroke-dasharray': '1.2 2.2', 'stroke-linecap': 'round' }, au);
+      for (k = 0; k < 5; k++) {
+        var tx2 = 10 + k * 16.5, col = ['#e5532f', '#ff8a2c', '#ffc233'][k % 3];
+        el('path', ink({ d: 'M' + (tx2 - 3.5) + ',9 q0,5 3.5,5 q3.5,0 3.5,-5 l-1.75,1.6 l-1.75,-2.4 l-1.75,2.4 Z', fill: col, 'stroke-width': 0.8 }), au);
+        if (k < 4) el('circle', { cx: tx2 + 8.25, cy: 11, r: 1.1, fill: '#7a4630' }, au);
+      }
+    } else {
+      el('rect', ink({ x: 22, y: 1, width: 42, height: 20, rx: 10, fill: '#f6e2c2' }), au);
+      [[34, 1], [52, -1]].forEach(function (b) {
+        var x = b[0], m = b[1];
+        el('path', ink({ d: 'M' + (x - 5 * m) + ',14 q' + (2 * m) + ',-8 ' + (7 * m) + ',-6 q' + (3 * m) + ',1 ' + (2 * m) + ',4 l' + (2.5 * m) + ',1 l' + (-2.5 * m) + ',1 q' + (-2 * m) + ',4 ' + (-9 * m) + ',1 Z', fill: m > 0 ? '#e5532f' : '#ff8a2c', 'stroke-width': 0.9 }), au);
+        el('circle', { cx: x + 2.2 * m, cy: 9.5, r: 0.8, fill: C.ink }, au);
+      });
+      el('path', ink({ d: 'M43,15 l-3.2,-3.4 a1.9,1.9 0 0 1 3.2,-2.4 a1.9,1.9 0 0 1 3.2,2.4 Z', fill: '#ffc233', 'stroke-width': 0.8 }), au);
+    }
+
+    // WINTER — Nordic on navy: a row of little pines / a Fair Isle diamond chain
+    var wi = sgroup(g, 'winter');
+    el('rect', ink({ x: 0, y: 2, width: W, height: 18, rx: 2, fill: '#27325e' }), wi);
+    if (v === 0) {
+      for (k = 0; k < 8; k++) {
+        var cx = 6 + k * 10.6;
+        el('path', { d: 'M' + cx + ',5 l3.6,5 h-2 l3,4.5 h-3 v2.5 h-3.2 v-2.5 h-3 l3,-4.5 h-2 Z', fill: '#fff' }, wi);
+      }
+    } else {
+      for (k = 0; k < 9; k++) {
+        var cx2 = 5 + k * 9.5;
+        el('path', { d: 'M' + cx2 + ',5 l4,6 l-4,6 l-4,-6 Z', fill: 'none', stroke: '#fff', 'stroke-width': 1.3 }, wi);
+        el('path', { d: 'M' + cx2 + ',9 v4 M' + (cx2 - 2) + ',11 h4', stroke: k % 2 ? '#ff6b6b' : '#fff', 'stroke-width': 1 }, wi);
+      }
+    }
+  }
+
+  // one bigger feature wall (the cinema's side): a different European craft each season
+  function featureWall(i, fr) {
+    if (i !== 2) return;
+    var g = el('g', { transform: 'translate(0.5,1.4) scale(0.0234375)' }, fr);   // 3/4 size, centred in the free wall
+    var W = 86, H = 54, k, j;
+    var ink = function (o) { return Object.assign({ stroke: C.ink, 'stroke-width': 1.3, 'stroke-linejoin': 'round' }, o); };
+    var cp = el('clipPath', { id: 'fwClip' }, defs);
+    el('rect', { x: 0, y: 0, width: W, height: H }, cp);
+    // spring: a wooden lattice with climbing roses
+    var sp = sgroup(g, 'spring'), lat = el('g', { 'clip-path': 'url(#fwClip)' }, sp), d = '';
+    for (k = -H; k < W + H; k += 13) d += 'M' + k + ',' + H + 'L' + (k + H) + ',0M' + k + ',0L' + (k + H) + ',' + H;
+    el('path', { d: d, stroke: C.ink, 'stroke-width': 3.6 }, lat);
+    el('path', { d: d, stroke: '#d9a873', 'stroke-width': 1.8 }, lat);
+    el('rect', ink({ x: 0, y: 0, width: W, height: H, fill: 'none', stroke: '#8a5a3b', 'stroke-width': 2.4 }), sp);
+    el('rect', { x: 0, y: 0, width: W, height: H, fill: 'none', stroke: C.ink, 'stroke-width': 1 }, sp);
+    el('path', { d: 'M4,54 C10,40 6,30 16,22 S30,8 44,10 M16,22 C26,26 32,36 30,48 M44,10 C56,12 62,6 70,4', fill: 'none', stroke: '#2f7d55', 'stroke-width': 1.6 }, sp);
+    [[6, 44], [12, 30], [18, 20], [28, 13], [40, 10], [52, 10], [64, 6], [27, 30], [31, 42]].forEach(function (r, n) {
+      el('ellipse', ink({ cx: r[0] + 3, cy: r[1] + 2, rx: 2.4, ry: 1.4, fill: '#3aa36c', 'stroke-width': 0.7, transform: 'rotate(30,' + (r[0] + 3) + ',' + (r[1] + 2) + ')' }), sp);
+      el('circle', ink({ cx: r[0], cy: r[1], r: 3.2, fill: n % 3 ? '#ff7eb9' : '#e5435a', 'stroke-width': 0.9 }), sp);
+      el('path', { d: 'M' + (r[0] - 1.2) + ',' + r[1] + ' a1.2,1.2 0 1 1 1.2,1.2', fill: 'none', stroke: 'rgba(22,22,29,.55)', 'stroke-width': 0.7 }, sp);
+    });
+    // summer: Portuguese azulejo tiles, the corner arcs join into circles across tiles
+    var su = sgroup(g, 'summer'), T = 18, ox = (W - T * 4) / 2;
+    for (j = 0; j < 3; j++) for (k = 0; k < 4; k++) {
+      var x = ox + k * T, y = j * T, cx = x + T / 2, cy = y + T / 2, tg = el('g', null, su);
+      el('rect', { x: x, y: y, width: T, height: T, fill: '#f7fbff', stroke: '#9ec3e6', 'stroke-width': 0.8 }, tg);
+      [[x, y, 0], [x + T, y, 90], [x + T, y + T, 180], [x, y + T, 270]].forEach(function (c) {
+        el('path', { d: 'M' + c[0] + ',' + c[1] + ' m5,0 a5,5 0 0 1 -5,5 Z', fill: '#2d6fc1', transform: 'rotate(' + c[2] + ',' + c[0] + ',' + c[1] + ')' }, tg);
+      });
+      for (var m = 0; m < 4; m++) el('ellipse', { cx: cx, cy: cy - 3.4, rx: 1.7, ry: 3.2, fill: '#2d6fc1', transform: 'rotate(' + (m * 90) + ',' + cx + ',' + cy + ')' }, tg);
+      el('circle', { cx: cx, cy: cy, r: 1.5, fill: '#f2b33d' }, tg);
+    }
+    el('rect', { x: ox, y: 0, width: T * 4, height: T * 3, fill: 'none', stroke: C.ink, 'stroke-width': 1.4 }, su);
+    // autumn: Scandinavian folk-art trees in warm tones
+    var au = sgroup(g, 'autumn');
+    el('rect', ink({ x: 0, y: 0, width: W, height: H, rx: 3, fill: '#f6e2c2' }), au);
+    el('rect', { x: 3, y: 3, width: W - 6, height: H - 6, rx: 2, fill: 'none', stroke: '#c9682a', 'stroke-width': 1.2, 'stroke-dasharray': '1.5 2.5', 'stroke-linecap': 'round' }, au);
+    el('path', { d: 'M8,46 H78', stroke: '#7a4630', 'stroke-width': 1.4 }, au);
+    [[20, '#e5532f', 13], [43, '#ff8a2c', 16], [66, '#ffc233', 12]].forEach(function (t) {
+      el('path', { d: 'M' + t[0] + ',46 V' + (32 - t[2] * 0.3), stroke: '#7a4630', 'stroke-width': 2 }, au);
+      var cy = 24 - t[2] * 0.25;
+      el('circle', ink({ cx: t[0], cy: cy, r: t[2] * 0.75, fill: t[1] }), au);
+      for (var m = 0; m < 6; m++) { var a = m * 1.047; el('circle', { cx: t[0] + Math.cos(a) * t[2] * 0.42, cy: cy + Math.sin(a) * t[2] * 0.42, r: 1.1, fill: '#fff6e0' }, au); }
+      el('circle', { cx: t[0], cy: cy, r: 1.4, fill: '#fff6e0' }, au);
+    });
+    el('path', { d: 'M28,10 l2.5,2 l2.5,-2 M36,7 l2,1.6 l2,-1.6', fill: 'none', stroke: C.ink, 'stroke-width': 1, 'stroke-linecap': 'round' }, au);
+    // winter: Nordic eight-point stars on navy
+    var wi = sgroup(g, 'winter');
+    el('rect', ink({ x: 0, y: 0, width: W, height: H, rx: 3, fill: '#27325e' }), wi);
+    function tri(y, up) { var d2 = ''; for (var q = 0; q < 14; q++) { var x0 = 3 + q * 5.75; d2 += 'M' + x0 + ',' + y + 'l2.9,' + (up ? -3.5 : 3.5) + 'l2.9,' + (up ? 3.5 : -3.5) + 'Z'; } el('path', { d: d2, fill: '#fff' }, wi); }
+    tri(7, true); tri(47, false);
+    [[18, 27, 9], [43, 27, 11], [68, 27, 9]].forEach(function (st) {
+      var d3 = '';
+      for (var q = 0; q < 16; q++) { var a = -Math.PI / 2 + q * Math.PI / 8, rr2 = q % 2 ? st[2] * 0.42 : st[2]; d3 += (q ? 'L' : 'M') + (st[0] + Math.cos(a) * rr2).toFixed(1) + ',' + (st[1] + Math.sin(a) * rr2).toFixed(1); }
+      el('path', { d: d3 + 'Z', fill: '#fff', stroke: '#9fb6e6', 'stroke-width': 0.8 }, wi);
+      el('rect', { x: st[0] - 1.6, y: st[1] - 1.6, width: 3.2, height: 3.2, fill: '#d8322b', transform: 'rotate(45,' + st[0] + ',' + st[1] + ')' }, wi);
+    });
+    [[30, 18], [30, 36], [56, 18], [56, 36], [6, 27], [80, 27]].forEach(function (p) { el('circle', { cx: p[0], cy: p[1], r: 1.2, fill: '#fff' }, wi); });
+  }
+
+  function winDecor(i, from) {
+    for (var k = from; k < WINS.length; k++) {
+      if (srand(i * 31 + k * 7)() > 0.42) continue;
+      var w = WINS[k], top = w.cy - w.h / 2, R = srand(k + 90);
+      var g = el('g', { transform: 'translate(' + w.cx + ',' + top + ') scale(0.03125)' }, w.g);
+      var bot = w.h * 32, hw = w.w * 16, ink = { stroke: C.ink, 'stroke-width': 1.3, 'stroke-linejoin': 'round' };
+      // spring: a planter under the sill
+      var sp = sgroup(g, 'spring');
+      [[-hw + 1, '#ff8fb8'], [-hw / 3, '#fff'], [hw / 3, '#ffd23f'], [hw - 1, '#ff8fb8']].forEach(function (f, n) {
+        el('circle', { cx: f[0], cy: bot - 1 - (n % 2) * 1.5, r: 2.2, fill: n % 2 ? '#2f9e6a' : f[1], stroke: C.ink, 'stroke-width': 0.9 }, sp);
+      });
+      el('rect', Object.assign({ x: -hw - 3, y: bot, width: hw * 2 + 6, height: 4.5, rx: 1, fill: '#a8613f' }, ink), sp);
+      // summer: a scalloped striped awning over the top
+      var su = sgroup(g, 'summer'), ac = R() < 0.5 ? C.red : '#2aa6a0', aw = hw + 4, n = 4;
+      for (var q = 0; q < n; q++) {
+        var x0 = -aw + q * aw * 2 / n, x1 = x0 + aw * 2 / n;
+        el('path', { d: 'M' + (x0 + 1.5 * (q - n / 2) / n) + ',-4 L' + (x1 + 1.5 * (q + 1 - n / 2) / n) + ',-4 L' + x1 + ',2 Q' + ((x0 + x1) / 2) + ',5 ' + x0 + ',2 Z', fill: q % 2 ? '#fff' : ac }, su);
+      }
+      el('path', Object.assign({ d: 'M' + (-aw - 0.7) + ',-4 H' + (aw + 0.7) + ' L' + aw + ',2' + (function () { var d = ''; for (var q = n - 1; q >= 0; q--) { var x0 = -aw + q * aw * 2 / n, x1 = x0 + aw * 2 / n; d += ' Q' + ((x0 + x1) / 2) + ',5 ' + x0 + ',2'; } return d; })() + ' Z', fill: 'none' }, ink), su);
+      // autumn: ivy climbing beside the window
+      var au = sgroup(g, 'autumn'), side = R() < 0.5 ? -1 : 1, vx = side * (hw + 3);
+      el('path', { d: 'M' + vx + ',' + (bot + 6) + ' C' + (vx + side * 3) + ',' + (bot * 0.6) + ' ' + (vx - side * 3) + ',' + (bot * 0.3) + ' ' + (vx + side * 1) + ',-3', fill: 'none', stroke: '#6b4a2e', 'stroke-width': 1.2 }, au);
+      [[bot + 2, 1], [bot * 0.72, -1], [bot * 0.45, 1], [bot * 0.18, -1], [-2, 1]].forEach(function (l, m) {
+        el('ellipse', { cx: vx + l[1] * 2.2, cy: l[0], rx: 2.3, ry: 1.6, fill: ['#e5532f', '#ff8a2c', '#c9682a', '#ffc233', '#e5532f'][m], stroke: C.ink, 'stroke-width': 0.8, transform: 'rotate(' + (l[1] * 30) + ',' + (vx + l[1] * 2.2) + ',' + l[0] + ')' }, au);
+      });
+      // winter: a pine swag with a red bow
+      var wi = sgroup(g, 'winter'), sw = 'M' + (-hw - 3) + ',-3 Q0,4 ' + (hw + 3) + ',-3';
+      el('path', { d: sw, fill: 'none', stroke: C.ink, 'stroke-width': 4.4, 'stroke-linecap': 'round' }, wi);
+      el('path', { d: sw, fill: 'none', stroke: '#2f7d55', 'stroke-width': 2.6, 'stroke-linecap': 'round' }, wi);
+      el('path', Object.assign({ d: 'M0,0.5 l-3.5,-2.2 v4.4 Z M0,0.5 l3.5,-2.2 v4.4 Z', fill: C.red }, ink, { 'stroke-width': 0.8 }), wi);
+    }
+  }
+
   ZONES.forEach(function (z, i) {
     var b = z.b;
     item(b[0] + b[2] / 2 + b[1] + b[3] / 2, function (g) {
@@ -531,8 +719,10 @@
       // arches on the tall faces
       var fl = el('g', { transform: faceL(b[0], b[1], 0, b[2], b[3], b[4]) }, zg);
       var fr = el('g', { transform: faceR(b[0], b[1], 0, b[2], b[3], b[4]) }, zg);
+      var w0 = WINS.length;
       for (var k = 0; k < b[2]; k++) if (b[4] >= 1) arch(fl, k + 0.32, b[4] - 0.85, 0.36, 0.6, shade(z.col, -0.55));
       for (k = 0; k < b[3]; k++) if (b[4] >= 2 && k !== 1) arch(fr, k + 0.32, 0.35, 0.36, 0.6, shade(z.col, -0.6));
+      winDecor(i, w0); band(i, fl, fr); featureWall(i, fr);
       var sn = NODES[STOP_NODE[i]].p, m = 0.42;
       poly(zg, [P(sn[0] - m, sn[1] - m, b[4]), P(sn[0] + m, sn[1] - m, b[4]), P(sn[0] + m, sn[1] + m, b[4]), P(sn[0] - m, sn[1] + m, b[4])], shade(z.col, 0.55), { 'stroke-width': 1.6 });
       poly(zg, [P(sn[0] - m * 0.55, sn[1] - m * 0.55, b[4]), P(sn[0] + m * 0.55, sn[1] - m * 0.55, b[4]), P(sn[0] + m * 0.55, sn[1] + m * 0.55, b[4]), P(sn[0] - m * 0.55, sn[1] + m * 0.55, b[4])], 'none', { stroke: z.col, 'stroke-width': 2, 'stroke-dasharray': '3 3' });
@@ -556,6 +746,11 @@
       poly(g, [P(x - 0.1, y - 0.1, E), P(x + w + 0.1, y - 0.1, E), P(x + w + 0.1, yc, R), P(x - 0.1, yc, R)], shade(C.orange, -0.1));
       poly(g, [P(x - 0.1, yc, R), P(x + w + 0.1, yc, R), P(x + w + 0.1, y + d + 0.1, E), P(x - 0.1, y + d + 0.1, E)], grad(C.orange, 'l'));
       poly(g, [P(x + w + 0.1, y - 0.1, E), P(x + w + 0.1, yc, R), P(x + w + 0.1, y + d + 0.1, E)], grad(C.pink, 'r'));
+      var rsn = sgroup(g, 'winter');
+      poly(rsn, [P(x - 0.1, y - 0.1, E + 0.04), P(x + w + 0.1, y - 0.1, E + 0.04), P(x + w + 0.1, yc, R + 0.04), P(x - 0.1, yc, R + 0.04)], '#fbfdff', { 'stroke-width': 1.8 });
+      var rf = [P(x - 0.1, yc, R + 0.04), P(x + w + 0.1, yc, R + 0.04), P(x + w + 0.1, y + d * 0.72, E + 0.3)], rd = srand(9);
+      for (var q = 1; q <= 9; q++) { var qq = P(x + w + 0.1 - (w + 0.2) * q / 9, y + d * 0.72, E + 0.3); rf.push([qq[0], qq[1] + (q < 9 ? 2 + rd() * 5 : 0)]); }
+      poly(rsn, rf, '#fbfdff', { 'stroke-width': 1.8 });
       // chimney + smoke
       box(g, x + 0.3, y + 0.15, E + 0.2, 0.3, 0.3, 0.6, C.red);
       var sp = P(x + 0.45, y + 0.3, E + 0.85);
@@ -884,6 +1079,346 @@
     });
   });
 
+  /* ---------- seasons + night: props ----------
+     Every prop is drawn once and shown by class: .ss-<season> only in that season,
+     .on-night / .on-day only at that time. #city carries .s-<season> and .night. */
+  function srand(seed) { return function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+  function sgroup(g, season, when) { return el('g', { class: (season ? 'ss ss-' + season : '') + (when ? ' on-' + when : '') }, g); }
+  // a rounded rectangle on the ground (world units) as screen points
+  function rrect(x0, y0, x1, y1, r, z) {
+    var out = [], c = [[x1 - r, y0 + r, -0.5], [x1 - r, y1 - r, 0], [x0 + r, y1 - r, 0.5], [x0 + r, y0 + r, 1]];
+    c.forEach(function (q) { for (var k = 0; k <= 4; k++) { var a = (q[2] + k / 8) * Math.PI; out.push(P(q[0] + Math.cos(a) * r, q[1] + Math.sin(a) * r, z)); } });
+    return out;
+  }
+  // a flat shape with a little thickness: the bottom copy shows as the side band
+  function puck(g, shape, z0, z1, side, top) {
+    poly(g, shape(z0), side);
+    return poly(g, shape(z1), top);
+  }
+  // a soft heap (snow, leaves) standing on the ground
+  function mound(g, x, y, z, r, col, rim) {
+    var p = P(x, y, z), rx = r * 34, h = r * 22;
+    el('ellipse', { cx: p[0], cy: p[1] + 2, rx: rx + 3, ry: rx * 0.42, fill: 'rgba(22,22,29,.12)' }, g);
+    return el('path', { d: 'M' + (p[0] - rx) + ',' + p[1] + ' C' + (p[0] - rx * 0.8) + ',' + (p[1] - h * 1.3) + ' ' + (p[0] + rx * 0.8) + ',' + (p[1] - h * 1.3) + ' ' + (p[0] + rx) + ',' + p[1] + ' A' + rx + ',' + (rx * 0.42) + ' 0 0 1 ' + (p[0] - rx) + ',' + p[1] + ' Z', fill: col, stroke: rim || C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
+  }
+  // a string of bulbs hanging between two points; bulbs are lit (never dimmed) and twinkle at night
+  var BULBS = [];
+  function bulbString(g, a, b, n, cols, kind) {
+    var pa = P(a[0], a[1], a[2]), pb = P(b[0], b[1], b[2]), sag = 18;
+    [a, b].forEach(function (q) {
+      var top = P(q[0], q[1], q[2]), bot = P(q[0], q[1], 0);
+      line(g, bot, [top[0], top[1] - 3], { stroke: C.ink, 'stroke-width': 4.4, 'stroke-linecap': 'round' });
+      line(g, bot, [top[0], top[1] - 3], { stroke: C.brown, 'stroke-width': 1.8, 'stroke-linecap': 'round' });
+    });
+    var d = 'M' + pa[0] + ',' + pa[1] + ' Q' + ((pa[0] + pb[0]) / 2) + ',' + ((pa[1] + pb[1]) / 2 + sag * 2) + ' ' + pb[0] + ',' + pb[1];
+    el('path', { d: d, fill: 'none', stroke: C.ink, 'stroke-width': 1.8 }, g);
+    for (var i = 1; i < n; i++) {
+      var u = i / n, x = (1 - u) * (1 - u) * pa[0] + 2 * u * (1 - u) * (pa[0] + pb[0]) / 2 + u * u * pb[0];
+      var y = (1 - u) * (1 - u) * pa[1] + 2 * u * (1 - u) * ((pa[1] + pb[1]) / 2 + sag * 2) + u * u * pb[1];
+      var col = cols[i % cols.length];
+      if (kind === 'lantern') {
+        line(g, [x, y], [x, y + 5], { stroke: C.ink, 'stroke-width': 1.5 });
+        el('ellipse', { class: 'on-night glow', cx: x, cy: y + 12, rx: 13, ry: 13, fill: 'url(#glowW)' }, g);
+        var lb = el('ellipse', { cx: x, cy: y + 12, rx: 6, ry: 7.5, fill: col, stroke: C.ink, 'stroke-width': 1.6, 'data-lit': 1 }, g);
+        el('path', { d: 'M' + (x - 3) + ',' + (y + 5) + ' h6 M' + (x - 3) + ',' + (y + 19.5) + ' h6', stroke: C.ink, 'stroke-width': 2 }, g);
+        BULBS.push({ n: lb, on: col, off: col, ph: i, lantern: 1 });
+      } else {
+        el('circle', { class: 'on-night glow', cx: x, cy: y + 4, r: 9, fill: 'url(#glowW)' }, g);
+        var bb = el('circle', { cx: x, cy: y + 4, r: 3, fill: '#d8d6e4', stroke: C.ink, 'stroke-width': 1.3, 'data-lit': 1 }, g);
+        BULBS.push({ n: bb, on: col, off: '#d8d6e4', ph: i * 1.7 });
+      }
+    }
+  }
+  // street lamps: posts along the decks, a warm head and a pool of light on the ground at night
+  var LAMPS = [[2.2, 15.0, 1, 18.7], [4.6, 16.3, 1], [7.95, 15.12, 1, 24.6], [12.2, 17.8, 1], [14.6, 15.4, 1], [12.25, 11.75, 1],
+    [2.2, 8.0, 2, 10.6], [3.75, 9.3, 2], [3.7, 2.3, 3], [7.25, 2.7, 3, 12.05], [15.65, 13.45, 0], [20.5, 17.9, 0]];
+  var LAMPF = [];
+  function lampArt(lg, b, hgt, glow) {
+    if (glow) el('ellipse', { class: 'on-night glow', cx: b[0], cy: b[1], rx: 42, ry: 21, fill: 'url(#glowPool)' }, lg);
+    el('ellipse', { cx: b[0], cy: b[1], rx: 5, ry: 2.5, fill: C.navy, stroke: C.ink, 'stroke-width': 1.5 }, lg);
+    line(lg, b, [b[0], b[1] - hgt], { stroke: C.ink, 'stroke-width': 4.6, 'stroke-linecap': 'round' });
+    line(lg, b, [b[0], b[1] - hgt], { stroke: C.navy, 'stroke-width': 1.8, 'stroke-linecap': 'round' });
+    el('circle', { class: 'on-night glow', cx: b[0], cy: b[1] - hgt - 5, r: 22, fill: 'url(#glowW)' }, lg);
+    el('path', { d: 'M' + (b[0] - 6) + ',' + (b[1] - hgt) + ' h12 l-2,-10 h-8 Z', class: 'lamp-glass', fill: '#e6e3f2', stroke: C.ink, 'stroke-width': 1.8, 'stroke-linejoin': 'round', 'data-lit': 1 }, lg);
+    el('path', { d: 'M' + (b[0] - 7.5) + ',' + (b[1] - hgt - 10) + ' h15 l-7.5,-6 Z', fill: C.ink, stroke: C.ink, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, lg);
+  }
+  LAMPS.forEach(function (l) {
+    var b = P(l[0], l[1], l[2]), hgt = 40;
+    // an optional 4th value overrides the depth key, for a lamp standing on a deck that is drawn as one piece
+    item(l[3] || l[0] + l[1] + 0.05, function (g) { lampArt(el('g', { class: 'lamp' }, g), b, hgt, true); });
+    // actors are drawn above the world, so a copy of the post goes on top while someone is behind it
+    var fg = el('g', { class: 'lamp', display: 'none' }, L.over);
+    lampArt(fg, b, hgt, false);
+    LAMPF.push({ n: fg, k: l[0] + l[1], x: b[0], base: b[1] + 3, top: b[1] - hgt - 17, on: false });
+  });
+  function lampsFront() {
+    var who = [];
+    var hp = hero.sp || P(hero.x, hero.y, hero.z);
+    who.push([hero.x + hero.y, hp[0], hp[1], 13, 74]);
+    CRE.forEach(function (c) { if (c.sy) who.push([c.cx + c.cy, c.sx, c.sy, 15, 40]); });
+    LAMPF.forEach(function (f) {
+      var on = false;
+      for (var i = 0; i < who.length && !on; i++) {
+        var a = who[i];
+        on = a[0] < f.k - 0.05 && Math.abs(a[1] - f.x) < a[3] + 8 && a[2] < f.base && a[2] - a[4] < f.base;
+      }
+      if (on !== f.on) { f.on = on; f.n.setAttribute('display', on ? '' : 'none'); }
+    });
+  }
+
+  // the open lot right of the Post Office (in front of the slide) changes with the season
+  var GX0 = 16.2, GY0 = 14.2, GX1 = 19.6, GY1 = 16.8;
+  // WINTER: an ice rink, a snowman, a Christmas tree, snow heaps; string lights at night
+  item(GX0 + GY0 + 0.2, function (g) {
+    var sg = sgroup(g, 'winter');
+    puck(sg, function (z) { return rrect(GX0, GY0, GX1, GY1, 0.6, z); }, 0, 0.08, '#8fbfe3', '#d9f1ff');
+    var sc = el('g', { fill: 'none', stroke: '#fff', 'stroke-width': 2, 'stroke-linecap': 'round', opacity: 0.9 }, sg);
+    [[17.1, 15.0, 0.7], [18.5, 15.8, 0.9], [19.0, 14.9, 0.5]].forEach(function (s) {
+      var a = P(s[0] - s[2], s[1], 0.08), b = P(s[0] + s[2], s[1] + 0.2, 0.08);
+      el('path', { d: 'M' + a[0] + ',' + a[1] + ' Q' + ((a[0] + b[0]) / 2) + ',' + (Math.min(a[1], b[1]) - 9) + ' ' + b[0] + ',' + b[1] }, sc);
+    });
+    var gl = P(16.9, 16.0, 0.08);
+    el('path', { d: 'M' + (gl[0] - 14) + ',' + (gl[1] + 4) + ' l22,-11 M' + (gl[0] - 4) + ',' + (gl[1] + 6) + ' l14,-7', stroke: '#fff', 'stroke-width': 2.5, 'stroke-linecap': 'round', opacity: 0.8 }, sg);
+    [[19.9, 13.4, 0.42], [20.7, 17.4, 0.38], [16.1, 17.6, 0.3], [21.0, 15.9, 0.3]].forEach(function (m) { mound(sg, m[0], m[1], 0, m[2], '#f7fbff'); });
+    var ng = sgroup(sg, null, 'night');
+    bulbString(ng, [GX0 + 0.2, GY0 + 0.2, 1.6], [GX1 - 0.2, GY0 + 0.2, 1.6], 9, [C.red, C.yellow, C.green, C.sky, C.pink]);
+  });
+  item(20.3 + 14.7, function (g) {
+    var sg = sgroup(g, 'winter'), p = P(20.3, 14.7, 0);
+    el('ellipse', { cx: p[0], cy: p[1], rx: 17, ry: 6, fill: 'rgba(22,22,29,.15)' }, sg);
+    var fx = sg; sg = el('g', {}, fx);
+    var bodyS = { fill: '#fbfdff', stroke: C.ink, 'stroke-width': 2.2 };
+    el('circle', Object.assign({ cx: p[0], cy: p[1] - 13, r: 14 }, bodyS), sg);
+    el('circle', Object.assign({ cx: p[0], cy: p[1] - 33, r: 10.5 }, bodyS), sg);
+    el('circle', Object.assign({ cx: p[0], cy: p[1] - 50, r: 8.5 }, bodyS), sg);
+    [-38, -31, -13, -6].forEach(function (y, i) { el('circle', { cx: p[0] + (i < 2 ? 0 : 1), cy: p[1] + y, r: 1.8, fill: C.ink }, sg); });
+    el('circle', { cx: p[0] - 3, cy: p[1] - 52, r: 1.5, fill: C.ink }, sg); el('circle', { cx: p[0] + 3, cy: p[1] - 52, r: 1.5, fill: C.ink }, sg);
+    el('path', { d: 'M' + p[0] + ',' + (p[1] - 49) + ' l10,2 l-10,2 Z', fill: C.orange, stroke: C.ink, 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, sg);
+    el('path', { d: 'M' + (p[0] - 9) + ',' + (p[1] - 42) + ' q9,4 18,0 l1,4 q-10,4 -20,0 Z M' + (p[0] + 4) + ',' + (p[1] - 40) + ' l4,10 l4,-1 l-3,-10', fill: C.red, stroke: C.ink, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, sg);
+    el('path', { d: 'M' + (p[0] - 10) + ',' + (p[1] - 34) + ' l-12,-9 l-3,-5 M' + (p[0] - 20) + ',' + (p[1] - 41) + ' l-5,1 M' + (p[0] + 10) + ',' + (p[1] - 34) + ' l12,-8 l4,-6', fill: 'none', stroke: C.brown, 'stroke-width': 2.4, 'stroke-linecap': 'round' }, sg);
+    el('path', { d: 'M' + (p[0] - 10) + ',' + (p[1] - 56) + ' h20 v2.5 h-20 Z M' + (p[0] - 6.5) + ',' + (p[1] - 56) + ' v-10 h13 v10 Z', fill: C.ink, stroke: C.ink, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, sg);
+    // every so often it wriggles and shakes the snow off, then stands still again
+    var body = sg, cityEl = document.getElementById('city'), wait = 3 + Math.random() * 5, shake = -1, flakes = [];
+    function puff() {
+      for (var i = 0; i < 12; i++) {
+        var a = -Math.PI * (0.1 + Math.random() * 0.8), sp = 30 + Math.random() * 45, y0 = p[1] - 10 - Math.random() * 48;
+        flakes.push({ n: el('circle', { r: 1.4 + Math.random() * 1.8, fill: '#fff', stroke: 'rgba(22,22,29,.25)', 'stroke-width': 0.6, 'data-nograde': 1 }, fx),
+          x: p[0] + (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 8), y: y0, vx: Math.cos(a) * sp * (Math.random() < 0.5 ? -1 : 1), vy: Math.sin(a) * sp, life: 0, max: 0.7 + Math.random() * 0.5, gy: p[1] + 2 - Math.random() * 6 });
+      }
+    }
+    anim(function (t, dt) {
+      if (RM || !cityEl.classList.contains('s-winter')) return;
+      if (shake < 0) {
+        wait -= dt;
+        if (wait <= 0) { shake = 0; puff(); }
+      } else {
+        shake += dt;
+        var k = Math.min(1, shake / 1.1), amp = 1 - k;
+        body.setAttribute('transform', 'translate(' + p[0] + ',' + p[1] + ') rotate(' + (Math.sin(shake * 30) * 6 * amp).toFixed(2) + ') scale(' + (1 + Math.sin(shake * 30 + 1) * 0.04 * amp).toFixed(3) + ',' + (1 - Math.abs(Math.sin(shake * 30)) * 0.05 * amp).toFixed(3) + ') translate(' + -p[0] + ',' + -p[1] + ')');
+        if (shake > 0.45 && shake - dt <= 0.45) puff();
+        if (k >= 1) { shake = -1; wait = 6 + Math.random() * 8; body.removeAttribute('transform'); }
+      }
+      for (var i = flakes.length - 1; i >= 0; i--) {
+        var f = flakes[i];
+        f.life += dt; f.vy += 160 * dt; f.x += f.vx * dt; f.y = Math.min(f.gy, f.y + f.vy * dt);
+        if (f.y >= f.gy) f.vx *= 0.8;
+        var o = 1 - f.life / f.max;
+        if (o <= 0) { f.n.remove(); flakes.splice(i, 1); continue; }
+        f.n.setAttribute('cx', f.x.toFixed(1)); f.n.setAttribute('cy', f.y.toFixed(1)); f.n.setAttribute('opacity', o.toFixed(2));
+      }
+    });
+  });
+  item(17.0 + 17.7, function (g) {
+    var sg = sgroup(g, 'winter'), p = P(17.0, 17.7, 0);
+    el('ellipse', { cx: p[0], cy: p[1], rx: 20, ry: 7, fill: 'rgba(22,22,29,.15)' }, sg);
+    el('rect', { x: p[0] - 4, y: p[1] - 12, width: 8, height: 12, fill: C.brown, stroke: C.ink, 'stroke-width': 1.8 }, sg);
+    [[0, 24, 22], [-16, 19, 17], [-30, 14, 13]].forEach(function (t) {
+      var y = p[1] - 10 + t[0];
+      el('path', { d: 'M' + (p[0] - t[1]) + ',' + y + ' L' + p[0] + ',' + (y - t[2] - 10) + ' L' + (p[0] + t[1]) + ',' + y + ' Q' + p[0] + ',' + (y + 5) + ' ' + (p[0] - t[1]) + ',' + y + ' Z', fill: '#2f9e6a', stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, sg);
+      el('path', { d: 'M' + (p[0] - t[1] * 0.45) + ',' + (y - t[2] * 0.55) + ' L' + p[0] + ',' + (y - t[2] - 10) + ' L' + (p[0] + t[1] * 0.45) + ',' + (y - t[2] * 0.55) + ' q-4,3 -7,0 q-4,3 -8,0 Z', fill: '#fbfdff', stroke: C.ink, 'stroke-width': 1.4, 'stroke-linejoin': 'round' }, sg);
+    });
+    var top = p[1] - 64;
+    el('circle', { class: 'on-night glow', cx: p[0], cy: top, r: 18, fill: 'url(#glowW)' }, sg);
+    el('path', { d: 'M' + p[0] + ',' + (top - 8) + ' l2.4,5.5 6,0.4 -4.6,3.8 1.5,5.8 -5.3,-3.2 -5.3,3.2 1.5,-5.8 -4.6,-3.8 6,-0.4 Z', fill: C.yellow, stroke: C.ink, 'stroke-width': 1.5, 'stroke-linejoin': 'round', 'data-lit': 1 }, sg);
+    [[-12, -8], [9, -12], [-4, -22], [8, -30], [-9, -36], [3, -44]].forEach(function (o, i) {
+      var bb = el('circle', { cx: p[0] + o[0], cy: p[1] + o[1], r: 2.6, fill: '#d8d6e4', stroke: C.ink, 'stroke-width': 1.2, 'data-lit': 1 }, sg);
+      BULBS.push({ n: bb, on: [C.red, C.yellow, C.sky, C.pink][i % 4], off: [C.red, C.yellow, C.sky, C.pink][i % 4], ph: i * 2.1, tw: 1 });
+    });
+  });
+
+  // SPRING: a flower bed with tulips, a cherry tree; paper lanterns at night
+  item(GX0 + GY0 + 0.2, function (g) {
+    var sg = sgroup(g, 'spring'), R = srand(7);
+    puck(sg, function (z) { return rrect(GX0, GY0, GX1, GY1, 0.6, z); }, 0, 0.12, '#a0673f', '#8fdc7e');
+    var fl = [];
+    for (var i = 0; i < 38; i++) fl.push([lerp(GX0 + 0.35, GX1 - 0.35, R()), lerp(GY0 + 0.3, GY1 - 0.3, R()), [C.pink, C.yellow, '#fff', C.red, C.lilac][Math.floor(R() * 5)], R() * 6]);
+    fl.sort(function (a, b) { return a[0] + a[1] - b[0] - b[1]; });
+    var heads = fl.map(function (f) {
+      var p = P(f[0], f[1], 0.12), fg = el('g', { transform: 'translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')' }, sg);
+      el('path', { d: 'M0,0 q-1,-6 0,-11 M0,-4 q4,-2 6,-6', fill: 'none', stroke: '#2f8f4e', 'stroke-width': 1.8, 'stroke-linecap': 'round' }, fg);
+      var hg = el('g', null, fg);
+      el('path', { d: 'M-3.5,-11 q0,-6 3.5,-6 q3.5,0 3.5,6 l-1.7,-2 -1.8,2 -1.8,-2 Z', fill: f[2], stroke: C.ink, 'stroke-width': 1.3, 'stroke-linejoin': 'round' }, hg);
+      return { g: hg, ph: f[3] };
+    });
+    anim(function (t) { heads.forEach(function (h) { h.g.setAttribute('transform', 'rotate(' + (Math.sin(t * 1.8 + h.ph) * 7).toFixed(1) + ',0,-11)'); }); });
+    [[19.9, 13.4, 0.3], [20.7, 17.4, 0.28], [16.1, 17.6, 0.25]].forEach(function (m) { mound(sg, m[0], m[1], 0, m[2], '#8fdc7e'); });
+    var ng = sgroup(sg, null, 'night');
+    bulbString(ng, [GX0 + 0.2, GY0 + 0.2, 1.7], [GX1 - 0.2, GY0 + 0.2, 1.7], 6, [C.red, C.orange, C.pink], 'lantern');
+  });
+  item(20.4 + 14.8, function (g) {
+    var sg = sgroup(g, 'spring'), p = P(20.4, 14.8, 0);
+    el('ellipse', { cx: p[0], cy: p[1], rx: 26, ry: 9, fill: 'rgba(22,22,29,.15)' }, sg);
+    el('path', { d: 'M' + (p[0] - 4) + ',' + p[1] + ' q2,-20 -6,-34 M' + (p[0] + 3) + ',' + p[1] + ' q0,-22 8,-36', fill: 'none', stroke: C.ink, 'stroke-width': 7, 'stroke-linecap': 'round' }, sg);
+    el('path', { d: 'M' + (p[0] - 4) + ',' + p[1] + ' q2,-20 -6,-34 M' + (p[0] + 3) + ',' + p[1] + ' q0,-22 8,-36', fill: 'none', stroke: C.brown, 'stroke-width': 3.6, 'stroke-linecap': 'round' }, sg);
+    var crown = el('g', null, sg);
+    [[-14, -44, 15], [13, -46, 16], [0, -58, 17], [-4, -38, 12]].forEach(function (c) { el('circle', { cx: p[0] + c[0], cy: p[1] + c[1], r: c[2], fill: '#ffb6d3', stroke: C.ink, 'stroke-width': 2 }, crown); });
+    var R = srand(3);
+    for (var i = 0; i < 14; i++) el('circle', { cx: p[0] + (R() - 0.5) * 44, cy: p[1] - 40 - R() * 28, r: 2.2, fill: '#fff', stroke: C.pink, 'stroke-width': 1 }, crown);
+    anim(function (t) { crown.setAttribute('transform', 'rotate(' + (Math.sin(t * 1.2) * 2).toFixed(2) + ',' + p[0] + ',' + p[1] + ')'); });
+  });
+
+  // SUMMER: a pool with a float ring and a beach ball, a parasol and lounger, a palm
+  item(GX0 + GY0 + 0.2, function (g) {
+    var sg = sgroup(g, 'summer');
+    puck(sg, function (z) { return rrect(GX0, GY0, GX1, GY1, 0.55, z); }, 0, 0.16, '#d8cdb3', '#fffaf0');
+    var water = poly(sg, rrect(GX0 + 0.22, GY0 + 0.22, GX1 - 0.22, GY1 - 0.22, 0.4, 0.1), '#55c8ff', { class: 'pool' });
+    var rip = el('g', { fill: 'none', stroke: '#fff', 'stroke-width': 2, 'stroke-linecap': 'round', opacity: 0.85 }, sg);
+    var rips = [[17.2, 15.1], [18.8, 15.6], [17.9, 16.1], [19.0, 14.8]].map(function (r) { return { n: el('path', null, rip), p: P(r[0], r[1], 0.1), ph: r[0] }; });
+    anim(function (t) { rips.forEach(function (r) { var k = Math.sin(t * 2 + r.ph) * 3; r.n.setAttribute('d', 'M' + (r.p[0] - 10) + ',' + r.p[1] + ' q5,' + (-3 + k * 0.4) + ' 10,0 t10,0'); }); });
+    // float ring + beach ball bob on the water
+    var ring = el('g', null, sg), rp = P(17.4, 15.4, 0.1);
+    el('ellipse', { cx: rp[0], cy: rp[1], rx: 15, ry: 7.5, fill: C.pink, stroke: C.ink, 'stroke-width': 2 }, ring);
+    el('ellipse', { cx: rp[0], cy: rp[1] - 1, rx: 6, ry: 3, fill: '#55c8ff', stroke: C.ink, 'stroke-width': 1.8 }, ring);
+    el('path', { d: 'M' + (rp[0] - 13) + ',' + (rp[1] - 3) + ' l5,3 M' + (rp[0] + 9) + ',' + (rp[1] + 5) + ' l5,-3 M' + (rp[0] + 2) + ',' + (rp[1] - 7) + ' l2,3', stroke: '#fff', 'stroke-width': 3.2, 'stroke-linecap': 'round' }, ring);
+    var ball = el('g', null, sg), bp = P(18.9, 15.9, 0.1);
+    el('circle', { cx: bp[0], cy: bp[1] - 8, r: 9, fill: '#fff', stroke: C.ink, 'stroke-width': 2 }, ball);
+    el('path', { d: 'M' + (bp[0] - 9) + ',' + (bp[1] - 8) + ' q9,-5 18,0 M' + bp[0] + ',' + (bp[1] - 17) + ' q-5,9 0,18', fill: 'none', stroke: C.red, 'stroke-width': 3.2 }, ball);
+    anim(function (t) {
+      ring.setAttribute('transform', 'translate(' + (Math.sin(t * 0.5) * 6).toFixed(1) + ',' + (Math.sin(t * 2.1) * 1.6).toFixed(1) + ') rotate(' + (Math.sin(t * 0.7) * 4).toFixed(1) + ',' + rp[0] + ',' + rp[1] + ')');
+      ball.setAttribute('transform', 'translate(0,' + (Math.sin(t * 2.4 + 1) * 2).toFixed(1) + ') rotate(' + (t * 20 % 360).toFixed(1) + ',' + bp[0] + ',' + (bp[1] - 8) + ')');
+    });
+    // a ladder on the near rim
+    var lp = P(19.2, 16.45, 0.16);
+    el('path', { d: 'M' + (lp[0] - 4) + ',' + (lp[1] + 4) + ' v-14 q0,-5 4,-5 M' + (lp[0] + 4) + ',' + (lp[1]) + ' v-14 q0,-5 4,-5', fill: 'none', stroke: C.ink, 'stroke-width': 4.2, 'stroke-linecap': 'round' }, sg);
+    el('path', { d: 'M' + (lp[0] - 4) + ',' + (lp[1] + 4) + ' v-14 q0,-5 4,-5 M' + (lp[0] + 4) + ',' + (lp[1]) + ' v-14 q0,-5 4,-5', fill: 'none', stroke: '#e6e6ef', 'stroke-width': 1.8, 'stroke-linecap': 'round' }, sg);
+    var ng = sgroup(sg, null, 'night');
+    bulbString(ng, [GX0 + 0.2, GY0 + 0.2, 1.6], [GX1 - 0.2, GY0 + 0.2, 1.6], 9, [C.pink, C.sky, C.yellow, C.green, C.lilac]);
+  });
+  item(20.3 + 14.6, function (g) {
+    var sg = sgroup(g, 'summer'), p = P(20.3, 14.6, 0);
+    // lounger
+    var c = P(20.0, 15.4, 0);
+    var lg = el('g', { transform: 'translate(' + c[0] + ',' + c[1] + ') scale(1.45) translate(' + -c[0] + ',' + -c[1] + ')' }, sg);
+    el('path', { d: 'M' + (c[0] - 16) + ',' + (c[1] - 4) + ' l22,-11 l10,5 l-22,11 Z', fill: C.sky, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, lg);
+    el('path', { d: 'M' + (c[0] - 16) + ',' + (c[1] - 4) + ' l-6,-14 l10,-5 l6,14', fill: shade(C.sky, -0.15), stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, lg);
+    el('path', { d: 'M' + (c[0] - 14) + ',' + (c[1] - 3) + ' v6 M' + (c[0] + 14) + ',' + (c[1] + 2) + ' v-6', stroke: C.ink, 'stroke-width': 2 }, lg);
+    // parasol
+    el('ellipse', { cx: p[0] + 6, cy: p[1] + 2, rx: 26, ry: 10, fill: 'rgba(22,22,29,.13)' }, sg);
+    line(sg, p, [p[0], p[1] - 52], { stroke: C.ink, 'stroke-width': 3.2 });
+    var top = p[1] - 52;
+    el('path', { d: 'M' + (p[0] - 30) + ',' + (top + 10) + ' Q' + p[0] + ',' + (top - 22) + ' ' + (p[0] + 30) + ',' + (top + 10) + ' Q' + p[0] + ',' + (top + 2) + ' ' + (p[0] - 30) + ',' + (top + 10) + ' Z', fill: C.red, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, sg);
+    el('path', { d: 'M' + (p[0] - 12) + ',' + (top + 6) + ' Q' + (p[0] - 4) + ',' + (top - 10) + ' ' + p[0] + ',' + (top - 7) + ' Q' + (p[0] + 4) + ',' + (top - 10) + ' ' + (p[0] + 12) + ',' + (top + 6) + ' Q' + p[0] + ',' + (top + 3) + ' ' + (p[0] - 12) + ',' + (top + 6) + ' Z', fill: '#fff', stroke: C.ink, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, sg);
+  });
+  item(17.0 + 17.7, function (g) {
+    var sg = sgroup(g, 'summer'), p = P(17.0, 17.7, 0);
+    el('ellipse', { cx: p[0], cy: p[1], rx: 22, ry: 8, fill: 'rgba(22,22,29,.13)' }, sg);
+    var tr = 'M' + p[0] + ',' + p[1] + ' q-2,-30 10,-58';
+    el('path', { d: tr, fill: 'none', stroke: C.ink, 'stroke-width': 9, 'stroke-linecap': 'round' }, sg);
+    el('path', { d: tr, fill: 'none', stroke: '#c98b52', 'stroke-width': 5.4, 'stroke-linecap': 'round', 'stroke-dasharray': '5 3' }, sg);
+    var fr = el('g', null, sg), tp = [p[0] + 10, p[1] - 58];
+    [[-34, 6], [-22, -16], [6, -24], [30, -8], [26, 14], [-12, 16]].forEach(function (f) {
+      el('path', { d: 'M' + tp[0] + ',' + tp[1] + ' q' + (f[0] * 0.5) + ',' + (f[1] * 0.6 - 10) + ' ' + f[0] + ',' + f[1] + ' q' + (-f[0] * 0.4) + ',' + (-f[1] * 0.2 + 4) + ' ' + (-f[0]) + ',' + (-f[1]) + ' Z', fill: '#38c47b', stroke: C.ink, 'stroke-width': 1.8, 'stroke-linejoin': 'round' }, fr);
+    });
+    el('circle', { cx: tp[0] - 3, cy: tp[1] + 4, r: 4, fill: C.brown, stroke: C.ink, 'stroke-width': 1.5 }, fr);
+    el('circle', { cx: tp[0] + 4, cy: tp[1] + 5, r: 4, fill: C.brown, stroke: C.ink, 'stroke-width': 1.5 }, fr);
+    anim(function (t) { fr.setAttribute('transform', 'rotate(' + (Math.sin(t * 1.4) * 3).toFixed(2) + ',' + tp[0] + ',' + tp[1] + ')'); });
+  });
+
+  // the gap between the Workshop and the Studio gets a small seasonal touch too
+  item(13.9 + 7.0, function (g) {
+    var p = P(13.9, 7.0, 0);
+    // winter: a red sled by a snow heap
+    var w = sgroup(g, 'winter');
+    mound(w, 13.4, 6.6, 0, 0.4, '#f7fbff');
+    el('path', { d: 'M' + (p[0] - 18) + ',' + (p[1] - 2) + ' l26,-13 l12,6 l-26,13 Z', fill: C.red, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, w);
+    el('path', { d: 'M' + (p[0] - 22) + ',' + (p[1] + 2) + ' q-4,-3 0,-6 M' + (p[0] - 20) + ',' + (p[1] + 3) + ' l28,-14 M' + (p[0] - 8) + ',' + (p[1] + 9) + ' l28,-14 q5,-1 4,-6', fill: 'none', stroke: C.ink, 'stroke-width': 2.2, 'stroke-linecap': 'round' }, w);
+    // spring: a flowering bush and a bench
+    var sp = sgroup(g, 'spring');
+    mound(sp, 13.3, 6.5, 0, 0.5, '#7fd27a');
+    var R = srand(21);
+    for (var i = 0; i < 9; i++) { var bp = P(13.3, 6.5, 0); el('circle', { cx: bp[0] + (R() - 0.5) * 30, cy: bp[1] - 4 - R() * 10, r: 2.4, fill: [C.pink, C.yellow, '#fff'][i % 3], stroke: C.ink, 'stroke-width': 1 }, sp); }
+    el('path', { d: 'M' + (p[0] - 16) + ',' + (p[1] - 10) + ' l24,-12 l6,3 l-24,12 Z', fill: C.brown, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, sp);
+    el('path', { d: 'M' + (p[0] - 16) + ',' + (p[1] - 10) + ' v-10 l24,-12 v10', fill: shade(C.brown, 0.15), stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, sp);
+    el('path', { d: 'M' + (p[0] - 14) + ',' + (p[1] - 9) + ' v9 M' + (p[0] + 12) + ',' + (p[1] - 19) + ' v9 M' + (p[0] - 8) + ',' + (p[1] - 6) + ' v8', stroke: C.ink, 'stroke-width': 2.2, 'stroke-linecap': 'round' }, sp);
+    // summer: an ice-cream cart
+    var su = sgroup(g, 'summer'), c = P(13.9, 7.0, 0);
+    el('ellipse', { cx: c[0], cy: c[1] + 2, rx: 24, ry: 8, fill: 'rgba(22,22,29,.13)' }, su);
+    el('path', { d: 'M' + (c[0] - 20) + ',' + (c[1] - 10) + ' l22,-11 l18,9 v18 l-22,11 l-18,-9 Z', fill: '#fff', stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, su);
+    el('path', { d: 'M' + (c[0] - 20) + ',' + (c[1] - 10) + ' l18,9 l22,-11 M' + (c[0] - 2) + ',' + (c[1] - 1) + ' v18', fill: 'none', stroke: C.ink, 'stroke-width': 2 }, su);
+    el('path', { d: 'M' + (c[0] - 18) + ',' + (c[1] - 4) + ' l14,7 v5 l-14,-7 Z', fill: C.pink, stroke: C.ink, 'stroke-width': 1.5 }, su);
+    el('circle', { cx: c[0] - 14, cy: c[1] + 9, r: 4.5, fill: C.ink }, su); el('circle', { cx: c[0] + 10, cy: c[1] + 13, r: 4.5, fill: C.ink }, su);
+    line(su, [c[0] - 2, c[1] - 12], [c[0] - 2, c[1] - 46], { stroke: C.ink, 'stroke-width': 2.6 });
+    el('path', { d: 'M' + (c[0] - 26) + ',' + (c[1] - 40) + ' Q' + (c[0] - 2) + ',' + (c[1] - 64) + ' ' + (c[0] + 22) + ',' + (c[1] - 40) + ' Z', fill: C.yellow, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, su);
+    el('path', { d: 'M' + (c[0] - 10) + ',' + (c[1] - 41) + ' Q' + (c[0] - 4) + ',' + (c[1] - 58) + ' ' + (c[0] - 2) + ',' + (c[1] - 52) + ' Q' + c[0] + ',' + (c[1] - 58) + ' ' + (c[0] + 6) + ',' + (c[1] - 41) + ' Z', fill: '#fff', stroke: C.ink, 'stroke-width': 1.4, 'stroke-linejoin': 'round' }, su);
+    el('path', { d: 'M' + (c[0] + 8) + ',' + (c[1] - 18) + ' l4,10 l4,-10 Z', fill: '#e8b06a', stroke: C.ink, 'stroke-width': 1.3, 'stroke-linejoin': 'round' }, su);
+    el('circle', { cx: c[0] + 12, cy: c[1] - 21, r: 4.4, fill: C.mint, stroke: C.ink, 'stroke-width': 1.3 }, su);
+    // autumn: a leaf heap with a rake stuck in it
+    var au = sgroup(g, 'autumn');
+    mound(au, 13.6, 6.8, 0, 0.55, '#ff8a2c');
+    var hp = P(13.6, 6.8, 0);
+    line(au, [hp[0] + 4, hp[1] - 8], [hp[0] + 22, hp[1] - 52], { stroke: C.ink, 'stroke-width': 4.4, 'stroke-linecap': 'round' });
+    line(au, [hp[0] + 4, hp[1] - 8], [hp[0] + 22, hp[1] - 52], { stroke: C.brown, 'stroke-width': 2, 'stroke-linecap': 'round' });
+    el('path', { d: 'M' + (hp[0] - 4) + ',' + (hp[1] - 4) + ' l16,-6 M' + (hp[0] - 3) + ',' + (hp[1] - 4) + ' v5 M' + (hp[0] + 2) + ',' + (hp[1] - 6) + ' v5 M' + (hp[0] + 7) + ',' + (hp[1] - 8) + ' v5 M' + (hp[0] + 12) + ',' + (hp[1] - 10) + ' v5', fill: 'none', stroke: C.ink, 'stroke-width': 2, 'stroke-linecap': 'round' }, au);
+    var R2 = srand(33);
+    for (i = 0; i < 8; i++) el('path', { d: 'M' + (hp[0] + (R2() - 0.5) * 40) + ',' + (hp[1] - R2() * 12) + ' q4,-4 8,0 q-4,4 -8,0 Z', fill: ['#e5532f', '#ffc233', '#c9682a'][i % 3], stroke: C.ink, 'stroke-width': 1 }, au);
+  });
+  // AUTUMN: leaf heaps and loose leaves, a pumpkin patch that turns into jack-o'-lanterns at night, a scarecrow
+  item(GX0 + GY0 + 0.2, function (g) {
+    var sg = sgroup(g, 'autumn'), R = srand(11);
+    var cols = ['#ff8a2c', '#e5532f', '#ffc233', '#c9682a'];
+    for (var i = 0; i < 46; i++) {
+      var x = lerp(15.6, 20.9, R()), y = lerp(13.6, 18.2, R());
+      var p = P(x, y, 0);
+      el('path', { d: 'M' + p[0] + ',' + p[1] + ' q4,-4 8,0 q-4,4 -8,0 Z', fill: cols[i % 4], stroke: C.ink, 'stroke-width': 1.1, transform: 'rotate(' + Math.round(R() * 360) + ',' + (p[0] + 4) + ',' + p[1] + ')' }, sg);
+    }
+    [[17.0, 14.9, 0.55, cols[0]], [18.6, 16.0, 0.62, cols[1]], [19.1, 14.7, 0.45, cols[2]], [16.6, 16.4, 0.38, cols[3]]].forEach(function (m) {
+      mound(sg, m[0], m[1], 0, m[2], m[3]);
+      var p = P(m[0], m[1], 0), RR = srand(Math.round(m[0] * 100));
+      for (var k = 0; k < 7; k++) {
+        var lx = p[0] + (RR() - 0.5) * m[2] * 52, ly = p[1] - RR() * m[2] * 22 - 2;
+        el('path', { d: 'M' + lx + ',' + ly + ' q4,-4 8,0 q-4,4 -8,0 Z', fill: cols[(k + 1) % 4], stroke: C.ink, 'stroke-width': 1 }, sg);
+      }
+    });
+  });
+  [[20.15, 14.45, 1], [20.65, 14.85, 0.8], [20.1, 15.2, 0.7]].forEach(function (q, i) {
+    item(q[0] + q[1], function (g) {
+      var sg = sgroup(g, 'autumn'), p = P(q[0], q[1], 0), s = q[2], rx = 14 * s, ry = 11 * s;
+      el('ellipse', { cx: p[0], cy: p[1], rx: rx + 3, ry: 5 * s, fill: 'rgba(22,22,29,.15)' }, sg);
+      el('ellipse', { cx: p[0], cy: p[1] - ry, rx: rx, ry: ry, fill: C.orange, stroke: C.ink, 'stroke-width': 2 }, sg);
+      el('path', { d: 'M' + (p[0] - rx * 0.4) + ',' + (p[1] - ry * 1.9) + ' q-4,' + ry + ' 0,' + (ry * 1.8) + ' M' + (p[0] + rx * 0.4) + ',' + (p[1] - ry * 1.9) + ' q4,' + ry + ' 0,' + (ry * 1.8), fill: 'none', stroke: shade(C.orange, -0.35), 'stroke-width': 1.6 }, sg);
+      el('path', { d: 'M' + p[0] + ',' + (p[1] - ry * 2) + ' q1,-5 5,-7', fill: 'none', stroke: '#3d7a3a', 'stroke-width': 3, 'stroke-linecap': 'round' }, sg);
+      // carved face, glowing at night
+      var fg = sgroup(sg, null, 'night'), fy = p[1] - ry;
+      el('circle', { class: 'glow', cx: p[0], cy: fy, r: rx * 1.8, fill: 'url(#glowW)' }, fg);
+      el('path', { d: 'M' + (p[0] - 6 * s) + ',' + (fy - 3 * s) + ' l3,-4 l3,4 Z M' + (p[0] + 1 * s) + ',' + (fy - 3 * s) + ' l3,-4 l3,4 Z M' + (p[0] - 7 * s) + ',' + (fy + 2 * s) + ' q7,6 14,0 l-3,1 -2,-2 -2,2 -2,-2 -2,2 Z', fill: '#ffd34d', stroke: C.ink, 'stroke-width': 1.2, 'stroke-linejoin': 'round', 'data-lit': 1 }, fg);
+    });
+  });
+  item(17.0 + 17.7, function (g) {
+    var sg = sgroup(g, 'autumn'), p = P(17.0, 17.7, 0);
+    el('ellipse', { cx: p[0], cy: p[1], rx: 14, ry: 5, fill: 'rgba(22,22,29,.15)' }, sg);
+    line(sg, p, [p[0], p[1] - 62], { stroke: C.ink, 'stroke-width': 5 }); line(sg, p, [p[0], p[1] - 62], { stroke: C.brown, 'stroke-width': 2.2 });
+    var sw = el('g', null, sg);
+    el('path', { d: 'M' + (p[0] - 22) + ',' + (p[1] - 44) + ' h44', stroke: C.ink, 'stroke-width': 5, 'stroke-linecap': 'round' }, sw);
+    el('path', { d: 'M' + (p[0] - 22) + ',' + (p[1] - 44) + ' h44', stroke: C.brown, 'stroke-width': 2.2, 'stroke-linecap': 'round' }, sw);
+    el('path', { d: 'M' + (p[0] - 13) + ',' + (p[1] - 48) + ' h26 l-3,24 h-20 Z', fill: '#4f7bd9', stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, sw);
+    el('path', { d: 'M' + (p[0] - 6) + ',' + (p[1] - 48) + ' v24 M' + (p[0] + 6) + ',' + (p[1] - 48) + ' v24', stroke: '#e5532f', 'stroke-width': 1.6 }, sw);
+    el('path', { d: 'M' + (p[0] - 24) + ',' + (p[1] - 44) + ' l-4,5 M' + (p[0] - 24) + ',' + (p[1] - 44) + ' l-5,1 M' + (p[0] + 24) + ',' + (p[1] - 44) + ' l4,5 M' + (p[0] + 24) + ',' + (p[1] - 44) + ' l5,1', stroke: C.yellow, 'stroke-width': 2, 'stroke-linecap': 'round' }, sw);
+    el('circle', { cx: p[0], cy: p[1] - 56, r: 8, fill: '#f3d9a4', stroke: C.ink, 'stroke-width': 2 }, sw);
+    el('path', { d: 'M' + (p[0] - 3) + ',' + (p[1] - 58) + ' l1.5,1.5 M' + (p[0] + 3) + ',' + (p[1] - 58) + ' l-1.5,1.5 M' + (p[0] - 3) + ',' + (p[1] - 53) + ' q3,2 6,0', fill: 'none', stroke: C.ink, 'stroke-width': 1.4, 'stroke-linecap': 'round' }, sw);
+    el('path', { d: 'M' + (p[0] - 16) + ',' + (p[1] - 61) + ' h32 l-2,-2 h-6 l-3,-9 h-10 l-3,9 h-6 Z', fill: C.yellow, stroke: C.ink, 'stroke-width': 1.8, 'stroke-linejoin': 'round' }, sw);
+    anim(function (t) { sw.setAttribute('transform', 'rotate(' + (Math.sin(t * 1.1) * 2.5).toFixed(2) + ',' + p[0] + ',' + p[1] + ')'); });
+  });
+
   // draw everything
   items.sort(function (a, b) { return a.k - b.k; });
   items.forEach(function (it) { it.f(L.world); });
@@ -1050,8 +1585,9 @@
         wGain = a.createGain(); wGain.gain.value = 0;
         wSrc.connect(wFil); wFil.connect(wGain); wGain.connect(a.destination); wSrc.start();
       }
-      var t = a.currentTime, v = on && lv > 0 ? 0.03 + lv * 0.07 : 0;
-      wFil.frequency.setTargetAtTime(600 + lv * 1300 + Math.random() * 250, t, 0.04);
+      var t = a.currentTime, v = on && lv > 0 ? 0.03 + lv * 0.07 : 0, icy = ENV && ENV.season === 'winter';
+      if (icy) v *= 0.6;
+      wFil.frequency.setTargetAtTime((icy ? 2600 + lv * 1800 : 600 + lv * 1300) + Math.random() * 250, t, 0.04);
       wGain.gain.setTargetAtTime(v, t, v ? 0.05 : 0.12);
     }
     return {
@@ -1059,11 +1595,13 @@
       step: function (kind) {
         if (kind === 'stairs') { tone(250 + Math.random() * 60, 0.04, 'triangle', 0.04); noise(0.03, 0.025, 2600); }
         else if (kind === 'bridge') { tone(105 + Math.random() * 25, 0.09, 'sine', 0.06, 0.8); noise(0.05, 0.03, 650); }
+        else if (kind === 'snow') { noise(0.07, 0.045, 1700 + Math.random() * 500); tone(90, 0.05, 'triangle', 0.02); }
+        else if (kind === 'leaf') { noise(0.09, 0.03, 3200 + Math.random() * 800); tone(150 + Math.random() * 50, 0.045, 'triangle', 0.03); }
         else tone(150 + Math.random() * 50, 0.045, 'triangle', 0.035);
       },
       water: water,
       // flung off the lip: a watery plop and a spray
-      splash: function () { tone(240, 0.14, 'sine', 0.08, 3); noise(0.45, 0.08, 1100); },
+      splash: function () { if (ENV && ENV.season === 'winter') { noise(0.3, 0.08, 1900); tone(120, 0.12, 'triangle', 0.05, 0.6); return; } tone(240, 0.14, 'sine', 0.08, 3); noise(0.45, 0.08, 1100); },
       open: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.08, 'square', 0.03, 0, i * 0.055); }); },
       close: function () { tone(520, 0.1, 'square', 0.03, 0.5); },
       click: function () { tone(700, 0.035, 'square', 0.025); },
@@ -1710,7 +2248,7 @@
           var spd = s.len / s.dur;
           var prev = Math.sin(H.phase);
           H.phase += dt * spd * (s.t === 'stairs' ? 6.5 : 5.4);
-          if ((prev < 0) !== (Math.sin(H.phase) < 0)) SFX.step(s.t === 'stairs' ? 'stairs' : onBridge(H.x, H.y) ? 'bridge' : null);
+          if ((prev < 0) !== (Math.sin(H.phase) < 0)) SFX.step(s.t === 'stairs' ? 'stairs' : onBridge(H.x, H.y) ? 'bridge' : ENV && ENV.season === 'winter' ? 'snow' : ENV && ENV.season === 'autumn' ? 'leaf' : null);
           H.x = lerp(a[0], b[0], u); H.y = lerp(a[1], b[1], u); H.z = lerp(a[2], b[2], u);
           var sn = Math.sin(H.phase), cs = Math.cos(H.phase);
           var stride = s.t === 'stairs' ? 5 : 6.5, lift = s.t === 'stairs' ? 6.5 : 4.5;
@@ -1976,7 +2514,7 @@
     { type: 'hold', col: C.yellow, a: [1.45, 3.6], b: [1.45, 4.75], z: 3 },
     { type: 'bezier', col: C.pink, a: [7.5, 4.75], b: [9.6, 4.75], z: 3 },
     { type: 'easeIn', col: C.purple, a: [12.3, 3.62], b: [12.95, 3.62], z: 2 },
-    { type: 'easeOut', col: C.orange, a: [12.4, 11.1], b: [12.6, 11.8], z: 1 },
+    { type: 'easeOut', col: C.orange, a: [12.5, 9.95], b: [12.65, 10.55], z: 1 },
     { type: 'bezier', col: C.lilac, a: [14.4, 17.3], b: [14.4, 17.75], z: 1 },
     { type: 'hold', col: C.mint, a: [8.45, 2.55], b: [9.45, 2.75], z: 4.4, small: 1 }
   ];
@@ -2029,6 +2567,15 @@
     c.timer = 0;
     if (c.st !== 'idle') { c.st = 'idle'; c.dur = rnd(0.25, 1.8); return; }
     var r = Math.random();
+    // nights get rowdy: tipsy wandering and dancing to one shared beat
+    if (ENV && ENV.night && r < 0.6) {
+      if (r < 0.28) {
+        var dx, dy, n = 0;
+        do { dx = rnd(c.R[0], c.R[1]); dy = rnd(c.R[2], c.R[3]); } while (Math.hypot(dx - c.x, dy - c.y) < 0.3 && ++n < 8);
+        c.st = 'drunk'; c.from = [c.x, c.y]; c.to = [dx, dy]; c.dur = rnd(1.6, 3); c.hicAt = rnd(0.3, 0.8);
+      } else { c.st = 'party'; c.dur = rnd(2, 4.5); }
+      return;
+    }
     if (r < 0.46) {
       var tx, ty, tries = 0;
       do { tx = rnd(c.R[0], c.R[1]); ty = rnd(c.R[2], c.R[3]); } while (Math.hypot(tx - c.x, ty - c.y) < 0.35 && ++tries < 8);
@@ -2045,7 +2592,7 @@
     CRE.forEach(function (c) {
       c.timer += dt;
       if (c.timer >= c.dur) {
-        if (c.st === 'move') { c.x = c.to[0]; c.y = c.to[1]; if (c.type === 'hold' || c.type === 'easeIn') c.land = 0.25; }
+        if (c.st === 'move' || c.st === 'drunk') { c.x = c.to[0]; c.y = c.to[1]; if (c.type === 'hold' || c.type === 'easeIn') c.land = 0.25; }
         pickAction(c);
       }
       var u = clamp(c.timer / (c.dur || 1), 0, 1);
@@ -2079,7 +2626,27 @@
         tilt = Math.sin(u * Math.PI * 10) * 9 * (1 - u);
       } else if (c.st === 'sleep') {
         eyesShut = true; sy = 1 + Math.sin(t * 1.6) * 0.05; tilt = 6;
+      } else if (c.st === 'drunk') {
+        // weaving, leaning, a hiccup halfway
+        var de = u * u * (3 - 2 * u), wob = Math.sin(u * Math.PI * 5) * 0.14 * Math.sin(u * Math.PI);
+        var ddx = c.to[0] - c.from[0], ddy = c.to[1] - c.from[1], dl = Math.hypot(ddx, ddy) || 1;
+        x = lerp(c.from[0], c.to[0], de) - ddy / dl * wob; y = lerp(c.from[1], c.to[1], de) + ddx / dl * wob;
+        var dsx = P(c.to[0], c.to[1], 0)[0] - P(c.from[0], c.from[1], 0)[0];
+        if (Math.abs(dsx) > 2) c.face = dsx < 0 ? -1 : 1;
+        tilt = Math.sin(t * 4.5 + c.R[0]) * 17; sy *= 1 + Math.sin(t * 9) * 0.04;
+        hop = Math.abs(Math.sin(u * Math.PI * 4)) * 0.06;
+        eyesShut = Math.sin(t * 2 + c.R[1]) > 0.2;
+        if (c.hicAt && u > c.hicAt) { c.hicAt = 0; c.hicT = 0.7; c.jump = 0.35; c.jh = 0.3; SFX.tone(520, 0.08, 'sine', 0.03, 1.6); }
+      } else if (c.st === 'party') {
+        // everyone on the same beat (about 132 bpm)
+        var bt = t * 2.2, bu = bt - Math.floor(bt);
+        hop = Math.sin(bu * Math.PI) * 0.22;
+        tilt = (Math.floor(bt) % 2 ? 1 : -1) * 13 * Math.sin(bu * Math.PI);
+        if (bu < 0.12) { sy *= 0.84; sx *= 1.12; }
+        if (Math.floor(bt) % 4 === 3) sx *= Math.cos(bu * Math.PI * 2) || 0.14;
+        if (Math.abs(sx) < 0.14) sx = sx < 0 ? -0.14 : 0.14;
       }
+      if (c.hicT > 0) c.hicT -= dt;
       if (c.land > 0) { c.land -= dt; sy *= 0.78; sx *= 1.22; }
       // knock-back from impacts, easing home
       c.kx *= Math.pow(0.05, dt); c.ky *= Math.pow(0.05, dt);
@@ -2178,14 +2745,15 @@
     function next() {
       k.timer = 0;
       var r = Math.random();
-      if (r < 0.55) {
+      var nite = ENV && ENV.night;
+      if (r < (nite ? 0.3 : 0.55)) {
         var near = SPOTS.filter(function (s) { return s !== k.x && Math.abs(s - k.x) < 2.1; });
         var pool = near.length && Math.random() < 0.7 ? near : SPOTS.filter(function (s) { return s !== k.x; });
         k.st = 'hop'; k.from = k.x; k.to = pool[Math.floor(Math.random() * pool.length)];
         var d = Math.abs(k.to - k.from);
         k.dur = 0.42 + 0.1 * d; k.hh = 0.4 + 0.22 * d; k.flip = d > 1.4 && Math.random() < 0.5;
         k.face = k.to > k.from ? 1 : -1;
-      } else if (r < 0.82) { k.st = 'dance'; k.dur = 1.5; }
+      } else if (r < (nite ? 0.96 : 0.82)) { k.st = 'dance'; k.dur = nite ? 1.1 : 1.5; }
       else { k.st = 'idle'; k.dur = rnd(0.5, 1.6); }
     }
     function dust(x, oy) {
@@ -2315,6 +2883,494 @@
     return { g: g, k: k, update: update, get x() { return k.cx; }, y: LY, get sy() { return k.sy; } };
   })();
 
+  /* ================= TIME + SEASONS =================
+     By default the clock decides: 0-6h winter, 6-12h spring, 12-18h summer, 18-24h autumn,
+     and day and night take turns every 10 minutes (minutes 00-09 day, 10-19 night, ...).
+     Picking a season or day/night by hand holds it, across reloads, until Auto is pressed again.
+     Night recolours the world in place (so lit windows and lamps stay correctly in front of or
+     behind things); actors and name tags are left at full brightness so the hero always reads. */
+  var SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+  var ENV = (function () {
+    var cityEl = svg;
+    function stopG(g, o, c, a) { el('stop', { offset: o, 'stop-color': c, 'stop-opacity': a }, g); }
+    var gw = el('radialGradient', { id: 'glowW' }, defs);
+    stopG(gw, 0, '#fff0b8', 0.8); stopG(gw, 0.4, '#ffd36a', 0.32); stopG(gw, 1, '#ffd36a', 0);
+    var gwin = el('radialGradient', { id: 'glowWin' }, defs);
+    stopG(gwin, 0, '#fff4c4', 1); stopG(gwin, 0.5, '#ffd36a', 0.55); stopG(gwin, 1, '#ffd36a', 0);
+    var gp = el('radialGradient', { id: 'glowPool' }, defs);
+    stopG(gp, 0, '#ffe7a3', 0.6); stopG(gp, 0.55, '#ffd36a', 0.22); stopG(gp, 1, '#ffd36a', 0);
+
+    /* ---- state ---- */
+    var E = { season: 'spring', night: false, auto: true, prev: 'spring', sb: 1, ne: 0, applied: '' };
+    function fromClock(d) {
+      d = d || new Date();
+      var h = d.getHours();
+      return { season: h < 6 ? 'winter' : h < 12 ? 'spring' : h < 18 ? 'summer' : 'autumn', night: Math.floor(d.getMinutes() / 10) % 2 === 1 };
+    }
+    try {
+      var sv = JSON.parse(localStorage.getItem('city-env') || 'null');
+      if (sv && SEASONS.indexOf(sv.season) >= 0) { E.auto = false; E.season = sv.season; E.night = !!sv.night; }
+    } catch (e) {}
+    if (E.auto) { var c0 = fromClock(); E.season = c0.season; E.night = c0.night; }
+    E.prev = E.season; E.ne = E.night ? 1 : 0;
+    function save() {
+      try { if (E.auto) localStorage.removeItem('city-env'); else localStorage.setItem('city-env', JSON.stringify({ season: E.season, night: E.night })); } catch (e) {}
+    }
+
+    /* ---- colour grading ---- */
+    var GRADE = { spring: ['#ffd9ea', 0.06], summer: ['#fff0c0', 0.05], autumn: ['#e0893c', 0.1], winter: ['#e3ecf7', 0.17] };
+    var NIGHT = [0.32, 0.34, 0.6], DUSK = [1, 0.78, 0.6];
+    var PAPER = { spring: ['#f6f0ea', '#e9dde2'], summer: ['#f7f1df', '#e9dfc0'], autumn: ['#f4eadb', '#e6d3b6'], winter: ['#f3f7fc', '#d9e4f1'] };
+    var NPAPER = ['#1d1c3d', '#2c2a58'];
+    function parse(v) {
+      if (!v || v.charAt(0) !== '#') return null;
+      if (v.length === 4) return [parseInt(v[1] + v[1], 16), parseInt(v[2] + v[2], 16), parseInt(v[3] + v[3], 16)];
+      if (v.length === 7) return [parseInt(v.slice(1, 3), 16), parseInt(v.slice(3, 5), 16), parseInt(v.slice(5, 7), 16)];
+      return null;
+    }
+    function gradeRGB(rgb, s) { var m = GRADE[s], t = parse(m[0]); return rgb.map(function (v, i) { return v + (t[i] - v) * m[1]; }); }
+    function nightMul(rgb, e) {
+      var d = 0.75 * Math.sin(Math.PI * e);
+      return rgb.map(function (v, i) { return v * lerp(1, NIGHT[i], e) * lerp(1, DUSK[i], d); });
+    }
+    var NODES = [];
+    function collect(root) {
+      if (!root || root.nodeType !== 1) return;
+      if (root.hasAttribute('data-lit') || (root.classList && root.classList.contains('glow'))) return;
+      ['fill', 'stroke', 'stop-color'].forEach(function (a) {
+        var v = root.getAttribute(a), rgb = parse(v);
+        if (rgb) NODES.push({ n: root, a: a, rgb: rgb, sc: root.__sc || null, ng: root.hasAttribute('data-nograde'), last: v });
+      });
+      for (var c = root.firstElementChild; c; c = c.nextElementSibling) collect(c);
+    }
+    var cache = {};
+    function colourFor(nd, e, sb) {
+      var a = nd.sc && nd.sc[E.prev] ? parse(nd.sc[E.prev]) : nd.rgb, b = nd.sc && nd.sc[E.season] ? parse(nd.sc[E.season]) : nd.rgb;
+      var key = a.join() + '|' + b.join() + '|' + E.prev + E.season + sb + '|' + e + (nd.ng ? 'n' : '');
+      var hit = cache[key];
+      if (hit) return hit;
+      var ga = nd.ng ? a : gradeRGB(a, E.prev), gb = nd.ng ? b : gradeRGB(b, E.season);
+      var g = ga.map(function (v, i) { return v + (gb[i] - v) * sb; });
+      return (cache[key] = r2h(nightMul(g, e)));
+    }
+    function apply(force) {
+      var e = Math.round(E.ne * 30) / 30, sb = Math.round(E.sb * 10) / 10, key = e + '|' + sb + '|' + E.prev + E.season;
+      if (!force && key === E.applied) return;
+      E.applied = key;
+      if (Object.keys(cache).length > 6000) cache = {};
+      for (var i = 0; i < NODES.length; i++) {
+        var nd = NODES[i], c = colourFor(nd, e, sb);
+        if (c !== nd.last) { nd.n.setAttribute(nd.a, c); nd.last = c; }
+      }
+      // paper + grid behind everything
+      var pa = PAPER[E.prev], pb = PAPER[E.season];
+      var paper = mix(mix(pa[0], pb[0], sb), NPAPER[0], e), grid = mix(mix(pa[1], pb[1], sb), NPAPER[1], e);
+      var rs = document.documentElement.style;
+      rs.setProperty('--paper', paper); rs.setProperty('--grid', grid);
+      sky.style.opacity = e.toFixed(2);
+      var mc = document.querySelector('meta[name="theme-color"]');
+      if (mc) mc.setAttribute('content', paper);
+    }
+
+    /* ---- sky (stars + moon) behind the city, weather canvas in front ---- */
+    var sky = document.createElement('div');
+    sky.className = 'nsky'; sky.setAttribute('aria-hidden', 'true');
+    var R = srand(5), st = [];
+    for (var i = 0; i < 90; i++) st.push(Math.round(R() * 100) + 'vw ' + Math.round(R() * 100) + 'vh 0 ' + (R() < 0.2 ? '1px' : '0') + ' rgba(255,255,255,' + (0.35 + R() * 0.6).toFixed(2) + ')');
+    sky.innerHTML = '<i class="st" style="box-shadow:' + st.slice(0, 45).join(',') + '"></i><i class="st st2" style="box-shadow:' + st.slice(45).join(',') + '"></i><i class="moon"></i>';
+    document.body.insertBefore(sky, svg);
+    var wx = document.createElement('canvas');
+    wx.className = 'wx'; wx.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(wx, svg.nextSibling);
+    var cx2 = wx.getContext('2d'), CW = 0, CH = 0, DPR = 1;
+    function sizeWx() { DPR = Math.min(2, window.devicePixelRatio || 1); CW = innerWidth; CH = innerHeight; wx.width = Math.round(CW * DPR); wx.height = Math.round(CH * DPR); }
+    sizeWx(); addEventListener('resize', sizeWx);
+
+    /* ---- snow on every box top, a snowy roof, seasonal tree crowns ---- */
+    TOPS.forEach(function (t, i) {
+      if (t.w * t.d < 0.03 || !t.after || !t.after.parentNode) return;
+      var T = t.T, R2 = srand(i + 3), d = 'M' + T[0][0].toFixed(1) + ',' + (T[0][1] - 0.5).toFixed(1) + ' L' + T[1][0].toFixed(1) + ',' + T[1][1].toFixed(1);
+      [[T[1], T[2]], [T[2], T[3]]].forEach(function (ed) {
+        var n = Math.max(2, Math.round(Math.hypot(ed[1][0] - ed[0][0], ed[1][1] - ed[0][1]) / 9));
+        for (var k = 1; k <= n; k++) {
+          var u = k / n, x = lerp(ed[0][0], ed[1][0], u), y = lerp(ed[0][1], ed[1][1], u);
+          var drip = k < n ? 2.5 + R2() * 2.5 + (R2() < 0.25 ? 4 : 0) : 0.5;
+          var um = (k - 0.5) / n, xm = lerp(ed[0][0], ed[1][0], um), ym = lerp(ed[0][1], ed[1][1], um);
+          d += ' Q' + xm.toFixed(1) + ',' + (ym + drip * 1.6).toFixed(1) + ' ' + x.toFixed(1) + ',' + (y + (k < n ? 1.2 : 0)).toFixed(1);
+        }
+      });
+      d += ' L' + T[3][0].toFixed(1) + ',' + T[3][1].toFixed(1) + ' Z';
+      var cap = el('path', { d: d, class: 'ss ss-winter', fill: '#ffffff', stroke: C.ink, 'stroke-width': 1.8, 'stroke-linejoin': 'round', 'data-nograde': 1 });
+      t.after.parentNode.insertBefore(cap, t.after.nextSibling);
+    });
+    TREES.forEach(function (tr, i) {
+      tr.crown.__sc = { spring: '#ffb6d3', summer: tr.col, autumn: i % 2 ? '#ff8a2c' : '#e5532f', winter: '#9fb6c9' };
+      var R3 = srand(i + 20), bl = el('g', { class: 'ss ss-spring' }, tr.sway);
+      for (var k = 0; k < 6; k++) el('circle', { cx: (R3() - 0.5) * 14, cy: -30 + (R3() - 0.5) * 14, r: 1.9, fill: '#fff', stroke: C.pink, 'stroke-width': 0.8 }, bl);
+      el('path', { class: 'ss ss-winter', d: 'M-10.5,-33 Q-9,-42 0,-41.5 Q9,-42 10.5,-33 q-3,3 -5,0 q-3,3 -5.5,0 q-3,3 -5.5,0 q-2,2 -4,0 Z', fill: '#fbfdff', stroke: C.ink, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, tr.sway);
+    });
+
+    /* ---- lit windows: about two in three glow at night, a few flick on and off ---- */
+    var WL = [];
+    WINS.forEach(function (w, i) {
+      if (srand(i + 40)() > 0.7) return;
+      // a round lamp-style glow drawn in screen space, so it isn't squashed onto the wall's plane
+      var m = svg.createSVGMatrix();
+      for (var a = w.g; a && a !== L.world; a = a.parentNode) {
+        var tl = a.transform && a.transform.baseVal.consolidate();
+        if (tl) m = tl.matrix.multiply(m);
+      }
+      var sx = m.a * w.cx + m.c * w.cy + m.e, sy = m.b * w.cx + m.d * w.cy + m.f;
+      var sw = Math.hypot(m.a, m.b) * w.w, sh = Math.hypot(m.c, m.d) * w.h, r = Math.max(sw, sh) * 0.95;
+      var inv = m.inverse(), halo = el('g', { class: 'on-night glow', transform: 'matrix(' + [inv.a, inv.b, inv.c, inv.d, inv.e, inv.f].join(',') + ')' });
+      el('circle', { cx: sx, cy: sy - sh * 0.08, r: r, fill: 'url(#glowWin)' }, halo);
+      w.g.insertBefore(halo, w.n);
+      w.n.classList.add('win-lit');
+      WL.push({ w: w, halo: halo, on: true });
+    });
+
+    /* ---- the slide turns to ice in winter ---- */
+    Array.prototype.forEach.call(svg.querySelectorAll('[data-slide]'), function (n) {
+      var k = n.getAttribute('data-slide');
+      n.__sc = { winter: k === 'body' ? '#bfe7ff' : k === 'hi' ? '#ffffff' : k === 'lip' ? '#e6f6ff' : null };
+      if (!n.__sc.winter) delete n.__sc.winter;
+    });
+
+    collect(L.world); collect(L.over); collect(ropeO); collect(ropeI); collect(SLIDE_OVER);
+    Array.prototype.forEach.call(defs.querySelectorAll('linearGradient stop, radialGradient[id^="sp"] stop'), function (s) { collect(s); });
+
+    function classes() {
+      SEASONS.forEach(function (s) { cityEl.classList.toggle('s-' + s, s === E.season); });
+      cityEl.classList.toggle('night', E.ne >= 0.5);
+      document.documentElement.setAttribute('data-season', E.season);
+    }
+    classes();
+    apply(true);
+
+    /* ---- creatures: accessories + night antics ---- */
+    CRE.forEach(function (c, i) {
+      var fg = c.mouth.parentNode, acc = {};
+      acc.cheeks = el('g', { display: 'none' }, fg);
+      el('ellipse', { cx: -6.6, cy: -11.2, rx: 2.3, ry: 1.4, fill: C.pink, opacity: 0.9 }, acc.cheeks);
+      el('ellipse', { cx: 6.6, cy: -11.2, rx: 2.3, ry: 1.4, fill: C.pink, opacity: 0.9 }, acc.cheeks);
+      acc.shades = el('path', { display: 'none', d: 'M-7.4,-17.2 h6 v3 q-3,2.6 -6,0 Z M1.4,-17.2 h6 v3 q-3,2.6 -6,0 Z M-1.4,-16.4 h2.8', fill: C.ink, stroke: C.ink, 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, fg);
+      acc.scarf = el('path', { display: 'none', d: 'M-8.5,-7.5 q8.5,3 17,0 v3.2 q-8.5,3 -17,0 Z M3,-5 l1.5,7.5 l3.5,-1 l-1.6,-7', fill: C.red, stroke: C.ink, 'stroke-width': 1.3, 'stroke-linejoin': 'round' }, fg);
+      if (i % 2 === 0) {
+        acc.glass = el('g', { display: 'none' }, c.body);
+        el('path', { d: 'M10,-21 h11 l-5.5,6.5 Z', fill: C.pink, stroke: C.ink, 'stroke-width': 1.4, 'stroke-linejoin': 'round' }, acc.glass);
+        el('path', { d: 'M15.5,-14.5 v6 M12.5,-8.5 h6', stroke: C.ink, 'stroke-width': 1.6, 'stroke-linecap': 'round' }, acc.glass);
+        el('circle', { cx: 19, cy: -21, r: 1.8, fill: C.green, stroke: C.ink, 'stroke-width': 1 }, acc.glass);
+      }
+      acc.hic = el('text', { 'font-size': 13, fill: C.ink, stroke: '#fff', 'stroke-width': 3, 'paint-order': 'stroke', display: 'none' }, c.g);
+      acc.hic.textContent = 'hic!';
+      acc.state = '';
+      c.acc = acc;
+      c.hicT = 0;
+    });
+    function accState(c) {
+      var s = E.season, n = E.ne >= 0.5;
+      return (n ? 'n' : 'd') + s + (c.hicT > 0 ? 'h' : '');
+    }
+    function updateAcc(c) {
+      var k = accState(c), a = c.acc;
+      if (k === a.state) return;
+      a.state = k;
+      var n = E.ne >= 0.5;
+      a.cheeks.setAttribute('display', n ? '' : 'none');
+      a.shades.setAttribute('display', !n && E.season === 'summer' ? '' : 'none');
+      a.scarf.setAttribute('display', E.season === 'winter' ? '' : 'none');
+      if (a.glass) a.glass.setAttribute('display', n ? '' : 'none');
+      a.hic.setAttribute('display', c.hicT > 0 ? '' : 'none');
+    }
+    function placeHic(c) {
+      if (c.hicT > 0) { c.acc.hic.setAttribute('x', (c.sx + 8).toFixed(1)); c.acc.hic.setAttribute('y', (c.sy - 34 - (0.7 - c.hicT) * 14).toFixed(1)); }
+    }
+
+    /* ---- disco ball over the letters at night ---- */
+    var disco = el('g', { class: 'on-night', 'pointer-events': 'none' }, L.fx);
+    // it floats on its own (a string up into the sky would cut across the buildings behind it)
+    var dp = P(8.35, 10.35, 6.4), ball = el('g', null, disco);
+    el('circle', { class: 'glow', cx: dp[0], cy: dp[1] + 12, r: 34, fill: 'url(#glowW)' }, ball);
+    el('circle', { cx: dp[0], cy: dp[1] + 12, r: 12, fill: '#c9cbe0', stroke: C.ink, 'stroke-width': 2 }, ball);
+    var facets = el('g', { 'clip-path': 'url(#discoClip)' }, ball);
+    var dc = el('clipPath', { id: 'discoClip' }, defs);
+    el('circle', { cx: dp[0], cy: dp[1] + 12, r: 11 }, dc);
+    var fc = [];
+    for (var fr = 0; fr < 5; fr++) for (var fk = 0; fk < 7; fk++) fc.push(el('rect', { x: dp[0] - 14 + fk * 4.6, y: dp[1] + 1.5 + fr * 4.4, width: 3.8, height: 3.6, fill: '#fff', 'data-lit': 1 }, facets));
+    var spots = [0, 1, 2, 3, 4, 5].map(function (k) { return el('ellipse', { rx: 7, ry: 3.5, fill: [C.pink, C.sky, C.yellow, C.green, C.lilac, C.orange][k], opacity: 0.55 }, disco); });
+
+    /* ---- weather + night particles on the canvas ---- */
+    // everything lives in the city's own coordinates (the camera's), inside the box around the city,
+    // so dragging the view away leaves the weather behind instead of pinning it to the screen
+    var parts = [], fireT = 4, fires = [], flies = [], rainOn = false, wind = 0, B = null, ks = 1;
+    function wxBox() {
+      if (B) return B;
+      var bb = L.world.getBBox();
+      if (!bb.width) return null;
+      // a wide margin so a zoomed-out view still sits inside the weather, not in a patch of it
+      var mx = bb.width * 0.55, my = bb.height * 0.55;
+      B = { x0: bb.x - mx, y0: bb.y - my, x1: bb.x + bb.width + mx, y1: bb.y + bb.height + my };
+      B.w = B.x1 - B.x0; B.h = B.y1 - B.y0;
+      return B;
+    }
+    function want() { return { winter: 460, spring: 150, autumn: 130, summer: 50 }[E.season]; }
+    function spawn(top) {
+      var s = E.season, p = { s: s, x: B.x0 + Math.random() * B.w, y: top ? B.y0 - 12 : B.y0 + Math.random() * B.h, ph: Math.random() * 6.28, rot: Math.random() * 6.28 };
+      if (s === 'winter') { p.r = 1.6 + Math.random() * 2.8; p.vy = 22 + p.r * 9; p.vx = 0; }
+      else if (s === 'spring') { p.r = 3 + Math.random() * 2; p.vy = 26 + Math.random() * 18; p.vx = 14; p.vr = (Math.random() - 0.5) * 3; }
+      else if (s === 'autumn') { p.r = 5 + Math.random() * 3; p.vy = 34 + Math.random() * 22; p.vx = 22; p.vr = (Math.random() - 0.5) * 4; p.c = ['#ff8a2c', '#e5532f', '#ffc233', '#c9682a'][Math.random() * 4 | 0]; }
+      else { p.r = 1.5 + Math.random() * 2; p.vy = -6 - Math.random() * 8; p.vx = 4; p.life = 3 + Math.random() * 4; }
+      return p;
+    }
+    function drawPart(p) {
+      var c = cx2;
+      c.save(); c.translate(p.x, p.y); c.scale(ks, ks);
+      if (p.s === 'winter') {
+        c.beginPath(); c.arc(0, 0, p.r, 0, 6.283); c.fillStyle = '#fff'; c.fill(); c.lineWidth = 1.1; c.strokeStyle = 'rgba(22,22,29,.75)'; c.stroke();
+      } else if (p.s === 'spring') {
+        c.rotate(p.rot); c.beginPath(); c.ellipse(0, 0, p.r, p.r * 0.55, 0, 0, 6.283); c.fillStyle = '#ffc2dc'; c.fill(); c.lineWidth = 1; c.strokeStyle = 'rgba(22,22,29,.7)'; c.stroke();
+      } else if (p.s === 'autumn') {
+        c.rotate(p.rot); c.scale(Math.cos(p.ph), 1);
+        c.beginPath(); c.moveTo(-p.r, 0); c.quadraticCurveTo(0, -p.r * 0.9, p.r, 0); c.quadraticCurveTo(0, p.r * 0.9, -p.r, 0);
+        c.fillStyle = p.c; c.fill(); c.lineWidth = 1.1; c.strokeStyle = 'rgba(22,22,29,.8)'; c.stroke();
+      } else {
+        var a = Math.max(0, Math.min(1, p.life)) * 0.8;
+        c.beginPath(); c.arc(0, 0, p.r, 0, 6.283); c.fillStyle = 'rgba(255,240,170,' + a.toFixed(2) + ')'; c.fill();
+      }
+      c.restore();
+    }
+    function boom() {
+      var x = B.x0 + B.w * (0.15 + Math.random() * 0.7), y = B.y0 + B.h * (0.05 + Math.random() * 0.25), y0 = B.y0 + B.h * 0.75;
+      var col = [C.pink, C.yellow, C.sky, C.green, C.orange, C.lilac][Math.random() * 6 | 0], n = 26 + (Math.random() * 14 | 0);
+      fires.push({ x: x, y: y0, ty: y, vy: -(y0 - y) / 0.9, t: 0, rise: true, col: col, n: n, sp: [] });
+    }
+    function drawWx(dt, t) {
+      var c = cx2;
+      c.setTransform(DPR, 0, 0, DPR, 0, 0);
+      c.clearRect(0, 0, CW, CH);
+      if (RM || !wxBox()) return;
+      // draw in city space; sizes only grow gently with zoom
+      c.setTransform(DPR * view.s, 0, 0, DPR * view.s, DPR * view.tx, DPR * view.ty);
+      ks = 1 / Math.sqrt(Math.max(0.3, view.s));
+      var vx0 = -view.tx / view.s - 20, vy0 = -view.ty / view.s - 20, vx1 = vx0 + CW / view.s + 40, vy1 = vy0 + CH / view.s + 40;
+      wind = Math.sin(t * 0.13) * 0.6 + Math.sin(t * 0.41) * 0.3;
+      var n = want();
+      while (parts.length < n) parts.push(spawn(false));
+      if (parts.length > n) parts.length = n;
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        if (p.s !== E.season) { parts[i] = spawn(false); continue; }
+        p.ph += dt * 2;
+        if (p.s === 'summer') { p.life -= dt; p.x += (p.vx + Math.sin(p.ph) * 6) * dt; p.y += p.vy * dt; if (p.life <= 0) { parts[i] = spawn(false); continue; } }
+        else { p.x += (p.vx * (1 + wind) + Math.sin(p.ph) * (p.s === 'winter' ? 10 : 18)) * dt; p.y += p.vy * dt; if (p.vr) p.rot += p.vr * dt; }
+        if (p.y > B.y1 + 12 || p.y < B.y0 - 40 || p.x > B.x1 + 20 || p.x < B.x0 - 20) { parts[i] = spawn(true); continue; }
+        if (p.x > vx0 && p.x < vx1 && p.y > vy0 && p.y < vy1) drawPart(p);
+      }
+      // autumn: a passing drizzle every couple of minutes
+      rainOn = E.season === 'autumn' && Math.sin(t / 37) > 0.45;
+      if (rainOn) {
+        c.strokeStyle = E.ne > 0.5 ? 'rgba(170,190,255,.55)' : 'rgba(80,110,170,.45)'; c.lineWidth = 1.4 * ks; c.beginPath();
+        for (i = 0; i < 520; i++) {
+          var rx = B.x0 + ((i * 97.13 + t * 260 * 0.35) % B.w), ry = B.y0 + ((i * 53.7 + t * 520) % B.h);
+          c.moveTo(rx, ry); c.lineTo(rx - 4 * ks, ry + 13 * ks);
+        }
+        c.stroke();
+      }
+      // fireflies on warm nights
+      var nf = E.ne > 0.5 && (E.season === 'spring' || E.season === 'summer') ? 22 : 0;
+      // they live in the city (world coords) and follow the camera, so they stay put when the view is dragged away
+      while (flies.length < nf) {
+        var fp = P(1 + Math.random() * 20, 1 + Math.random() * 17, 0.6 + Math.random() * 1.8);
+        flies.push({ x: fp[0], y: fp[1], ph: Math.random() * 6, sp: 0.6 + Math.random() });
+      }
+      if (flies.length > nf) flies.length = nf;
+      var fr = 9 * ks;
+      flies.forEach(function (f) {
+        f.ph += dt * f.sp; f.x += Math.cos(f.ph * 0.7) * 14 * dt; f.y += Math.sin(f.ph) * 10 * dt;
+        var fx = f.x, fy = f.y, a = 0.5 + 0.5 * Math.sin(f.ph * 3);
+        var gr = c.createRadialGradient(fx, fy, 0, fx, fy, fr);
+        gr.addColorStop(0, 'rgba(255,240,140,' + (0.9 * a).toFixed(2) + ')'); gr.addColorStop(1, 'rgba(255,220,90,0)');
+        c.fillStyle = gr; c.beginPath(); c.arc(fx, fy, fr, 0, 6.283); c.fill();
+      });
+      // fireworks at night, more often in summer
+      if (E.ne > 0.8) {
+        fireT -= dt;
+        if (fireT <= 0) { boom(); fireT = E.season === 'summer' ? 2 + Math.random() * 4 : 6 + Math.random() * 9; }
+      }
+      for (i = fires.length - 1; i >= 0; i--) {
+        var f = fires[i];
+        f.t += dt;
+        if (f.rise) {
+          f.y += f.vy * dt;
+          c.fillStyle = '#fff3c4'; c.beginPath(); c.arc(f.x, f.y, 2.2 * ks, 0, 6.283); c.fill();
+          if (f.y <= f.ty) {
+            f.rise = false; f.t = 0;
+            for (var k = 0; k < f.n; k++) { var an = k / f.n * 6.283, v = 90 + Math.random() * 40; f.sp.push([f.x, f.y, Math.cos(an) * v, Math.sin(an) * v]); }
+            if (SFX.on) { SFX.tone(90, 0.3, 'sine', 0.035, 0.6); }
+          }
+        } else {
+          var life = 1 - f.t / 1.6;
+          if (life <= 0) { fires.splice(i, 1); continue; }
+          c.fillStyle = f.col; c.globalAlpha = life;
+          f.sp.forEach(function (s) {
+            s[2] *= Math.pow(0.35, dt); s[3] = s[3] * Math.pow(0.35, dt) + 40 * dt;
+            s[0] += s[2] * dt; s[1] += s[3] * dt;
+            c.beginPath(); c.arc(s[0], s[1], 2.4 * ks, 0, 6.283); c.fill();
+          });
+          c.globalAlpha = 1;
+        }
+      }
+    }
+
+    /* ---- hero traces: footprints in snow, kicked-up leaves in autumn ---- */
+    var prints = [], printT = 0, printSide = 1;
+    function traces(dt) {
+      for (var i = prints.length - 1; i >= 0; i--) {
+        var q = prints[i];
+        q.life -= dt;
+        if (q.life <= 0 || prints.length > 70) { q.n.remove(); prints.splice(i, 1); continue; }
+        if (q.leaf) {
+          q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 160 * dt; q.r += q.vr * dt;
+          if (q.y > q.gy) { q.y = q.gy; q.vx *= 0.5; q.vy = 0; q.vr = 0; }
+          q.n.setAttribute('transform', 'translate(' + q.x.toFixed(1) + ',' + q.y.toFixed(1) + ') rotate(' + q.r.toFixed(0) + ')');
+        }
+        q.n.setAttribute('opacity', Math.min(1, q.life / 1.2).toFixed(2));
+      }
+      var s = hero.mode === 'travel' && hero.seg;
+      if (!s || (s.t !== 'walk' && s.t !== 'stairs') || hero.char === 'astro') return;
+      printT -= dt;
+      if (printT > 0) return;
+      printT = 0.2;
+      var gp = P(hero.x, hero.y, hero.z);
+      if (E.season === 'winter') {
+        printSide = -printSide;
+        var n = el('ellipse', { cx: (gp[0] + printSide * 3).toFixed(1), cy: (gp[1] + printSide).toFixed(1), rx: 3.4, ry: 1.8, fill: E.ne > 0.5 ? 'rgba(150,170,230,.5)' : 'rgba(110,140,185,.45)' }, L.route);
+        prints.push({ n: n, life: 5 });
+      } else if (E.season === 'autumn' && Math.random() < 0.6) {
+        var lf = el('path', { d: 'M-4,0 q4,-4 8,0 q-4,4 -8,0 Z', fill: ['#ff8a2c', '#e5532f', '#ffc233'][Math.random() * 3 | 0], stroke: C.ink, 'stroke-width': 1 }, L.fx);
+        prints.push({ n: lf, leaf: 1, life: 1.6, x: gp[0], y: gp[1] - 2, gy: gp[1] + 2, vx: (Math.random() - 0.5) * 70, vy: -60 - Math.random() * 50, r: 0, vr: (Math.random() - 0.5) * 600 });
+      }
+    }
+
+    /* ---- clock + transitions ---- */
+    var tickT = 0;
+    function setState(season, night, instant) {
+      if (season !== E.season) { E.prev = instant ? season : E.season; E.season = season; E.sb = instant ? 1 : 0; parts.length = 0; }
+      if (night !== E.night) { E.night = night; if (instant) E.ne = night ? 1 : 0; }
+      classes(); apply(instant); save(); ui();
+    }
+    function update(dt, t) {
+      tickT -= dt;
+      if (tickT <= 0) {
+        tickT = 1;
+        if (E.auto) { var c = fromClock(); if (c.season !== E.season || c.night !== E.night) setState(c.season, c.night, false); }
+        if (pop && !pop.hidden) note();
+      }
+      var goal = E.night ? 1 : 0;
+      if (E.ne !== goal) {
+        E.ne = RM ? goal : goal > E.ne ? Math.min(goal, E.ne + dt / 3) : Math.max(goal, E.ne - dt / 3);
+        if ((E.ne >= 0.5) !== cityEl.classList.contains('night')) classes();
+      }
+      if (E.sb < 1) E.sb = RM ? 1 : Math.min(1, E.sb + dt / 1.2);
+      apply(false);
+      // bulbs twinkle at night
+      var night = E.ne >= 0.5;
+      BULBS.forEach(function (b) {
+        var f = night ? (b.lantern ? b.on : Math.sin(t * 3 + b.ph) > -0.35 ? b.on : shade(b.on, -0.45)) : b.off;
+        if (b.f !== f) { b.n.setAttribute('fill', f); b.f = f; }
+      });
+      // a window now and then switches off or back on
+      if (night && WL.length && Math.random() < dt * 0.5) {
+        var w = WL[Math.random() * WL.length | 0];
+        w.on = !w.on; w.w.n.classList.toggle('win-lit', w.on); w.halo.style.display = w.on ? '' : 'none';
+      }
+      if (night) {
+        var sp = (t * 0.9) % 1;
+        ball.setAttribute('transform', 'translate(0,' + (Math.sin(t * 1.6) * 3).toFixed(1) + ')');
+        fc.forEach(function (f, k) { f.setAttribute('opacity', ((k * 7 + Math.floor(t * 8)) % 5) < 2 ? 1 : 0.35); });
+        spots.forEach(function (s, k) {
+          var a = t * 0.9 + k * 1.05, sx = P(8.35 + Math.cos(a) * 3.3, 10.35 + Math.sin(a) * 1.1, 3.2);
+          s.setAttribute('cx', sx[0].toFixed(1)); s.setAttribute('cy', sx[1].toFixed(1));
+        });
+      }
+      CRE.forEach(function (c) { updateAcc(c); placeHic(c); });
+      traces(dt);
+      drawWx(dt, t);
+    }
+
+    /* ---- UI: the button and its little panel ---- */
+    var btn = document.getElementById('b-env'), pop = document.getElementById('envpop');
+    var ICON = {
+      day: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/></svg>',
+      night: '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M10.2 1.2a6.8 6.8 0 1 0 4.6 11.6A5.6 5.6 0 0 1 10.2 1.2z"/></svg>',
+      spring: '<svg viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="8" cy="3.8" r="2.7"/><circle cx="12" cy="6.7" r="2.7"/><circle cx="10.5" cy="11.4" r="2.7"/><circle cx="5.5" cy="11.4" r="2.7"/><circle cx="4" cy="6.7" r="2.7"/></g><circle cx="8" cy="8" r="2" fill="var(--yellow)" stroke="currentColor" stroke-width="1.2"/></svg>',
+      summer: '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1 8.2a7 6.4 0 0 1 14 0z"/><path stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" d="M8 8v5.2q0 1.6-1.6 1.6T4.8 13.2"/></svg>',
+      autumn: '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 .8l1.6 3.4 2.7-1.1-.7 3.1 3.1-.4-2 2.6 1.6 1.2-3.5 1.1L11.3 13l-2.6-1.3-.4 3.5h-.6l-.4-3.5L4.7 13l.5-2.3-3.5-1.1 1.6-1.2-2-2.6 3.1.4-.7-3.1 2.7 1.1z"/></svg>',
+      winter: '<svg viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none" d="M8 1v14M1.9 4.5l12.2 7M1.9 11.5l12.2-7M5.8 2.4L8 4.2l2.2-1.8M5.8 13.6L8 11.8l2.2 1.8"/></svg>',
+      auto: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 4.4V8l2.6 1.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+    };
+    var NAMES_S = { spring: ['Spring', 'Xuân'], summer: ['Summer', 'Hạ'], autumn: ['Autumn', 'Thu'], winter: ['Winter', 'Đông'] };
+    function bil(en, vi) { return '<span lang="en">' + en + '</span><span lang="vi">' + vi + '</span>'; }
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function note() {
+      var nt = document.getElementById('env-note');
+      if (!nt) return;
+      if (!E.auto) { nt.innerHTML = bil('Held as you picked it. Press Auto to follow the clock again.', 'Đang giữ theo lựa chọn của bạn. Bấm Tự động để đổi theo giờ.'); return; }
+      var d = new Date(), m = d.getMinutes(), nx = new Date(d.getTime());
+      nx.setMinutes(m - m % 10 + 10, 0, 0);
+      var nn = fromClock(nx), hh = pad(nx.getHours()) + ':' + pad(nx.getMinutes());
+      var what = nn.season !== E.season ? bil(NAMES_S[nn.season][0], 'Mùa ' + NAMES_S[nn.season][1].toLowerCase()) : nn.night ? bil('Night', 'Đêm') : bil('Day', 'Ngày');
+      nt.innerHTML = bil('Seasons turn every 6 hours, day and night every 10 minutes. Next: ', 'Mùa đổi mỗi 6 tiếng, ngày và đêm đổi mỗi 10 phút. Tiếp theo: ') + '<b>' + what + bil(' at ', ' lúc ') + hh + '</b>';
+    }
+    function ui() {
+      if (!btn) return;
+      btn.innerHTML = ICON[E.night ? 'night' : 'day'] + ICON[E.season];
+      btn.setAttribute('aria-label', (E.night ? 'Night' : 'Day') + ', ' + NAMES_S[E.season][0] + (E.auto ? ' (auto)' : ''));
+      btn.classList.toggle('manual', !E.auto);
+      if (!pop) return;
+      Array.prototype.forEach.call(pop.querySelectorAll('[data-night]'), function (b) { b.setAttribute('aria-pressed', String((b.getAttribute('data-night') === '1') === E.night)); });
+      Array.prototype.forEach.call(pop.querySelectorAll('[data-season]'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-season') === E.season)); });
+      var ab = pop.querySelector('[data-auto]');
+      if (ab) ab.setAttribute('aria-pressed', String(E.auto));
+      note();
+    }
+    function openPop(on) {
+      if (!pop) return;
+      pop.hidden = !on;
+      btn.setAttribute('aria-expanded', String(on));
+      if (on) { ui(); var f = pop.querySelector('[aria-pressed="true"]'); if (f) f.focus(); }
+    }
+    if (btn && pop) {
+      Array.prototype.forEach.call(pop.querySelectorAll('[data-icon]'), function (s) { s.innerHTML = ICON[s.getAttribute('data-icon')]; });
+      btn.addEventListener('click', function (e) { e.stopPropagation(); SFX.click(); openPop(pop.hidden); });
+      pop.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var b = e.target.closest('button');
+        if (!b) return;
+        SFX.click();
+        if (b.hasAttribute('data-close')) { openPop(false); btn.focus(); return; }
+        if (b.hasAttribute('data-auto')) { E.auto = true; var c = fromClock(); setState(c.season, c.night, false); return; }
+        E.auto = false;
+        var s = b.getAttribute('data-season') || E.season, n = b.hasAttribute('data-night') ? b.getAttribute('data-night') === '1' : E.night;
+        setState(s, n, false);
+      });
+      document.addEventListener('click', function (e) { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) openPop(false); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { openPop(false); btn.focus(); } });
+    }
+    ui();
+
+    return {
+      update: update,
+      get night() { return E.ne >= 0.5; },
+      get season() { return E.season; },
+      state: E,
+      set: function (season, night) { E.auto = false; setState(season || E.season, night == null ? E.night : !!night, true); },
+      auto: function () { E.auto = true; var c = fromClock(); setState(c.season, c.night, true); },
+      count: function () { return NODES.length; },
+      adopt: function (n) { collect(n); apply(true); }
+    };
+  })();
+
   /* ---------- clouds (screen-space parallax, inside camera) ---------- */
   var clouds = [];
   function cloud(x, y, s, sp) {
@@ -2325,6 +3381,7 @@
     clouds.push({ g: g, x: x, y: y, sp: sp });
   }
   cloud(-380, -20, 1.2, 9); cloud(60, -110, 1, 6); cloud(320, 140, 1.05, 8); cloud(-260, 380, 0.9, 7);
+  clouds.forEach(function (c) { ENV.adopt(c.g); });
 
   /* ================= CAMERA ================= */
   var view = { s: 1, tx: 0, ty: 0 }, goal = { s: 1, tx: 0, ty: 0 }, lastBg = [];
@@ -2874,6 +3931,7 @@
     hero.update(dt, t);
     updateCre(dt, t);
     KEP.update(dt, t);
+    ENV.update(dt, t);
     drawRope(dt);
     updatePads(dt);
     updateParts(dt);
@@ -2901,6 +3959,7 @@
       list.sort(function (a, b) { return a.y - b.y; });
       list.forEach(function (it) { L.actors.appendChild(it.n); });
     }
+    lampsFront();
     if (hero.mode === 'travel') refreshChipsLazy();
     applyCam(dt);
   }
@@ -2945,5 +4004,5 @@
   setTimeout(layoutTags, 1200); setTimeout(layoutTags, 3500);
   init();
 
-  window.GMTCity = { kep: KEP, sfx: SFX, openArcade: openArcade, cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt, openCharsel: openCharsel, pickChar: pickChar, setLook: setLook, look: function () { return look; }, turn: function (d) { setAuto(false); TT.th = d; TT.pop = 9; render(); TT.pop = 9; render(); }, follow: function () { return follow; } };
+  window.GMTCity = { lookAt: function (x, y, z, sc) { var p = P(x, y, z || 0); if (sc) goal.s = sc; goal.tx = W / 2 - p[0] * goal.s; goal.ty = Hh / 2 - p[1] * goal.s; userMoved = true; }, env: ENV, kep: KEP, sfx: SFX, openArcade: openArcade, cre: CRE, boxes: BOXES, edges: function () { var out = []; ADJ.forEach(function (l, u) { l.forEach(function (e) { if (u < e.to) out.push({ a: GN[u], b: GN[e.to], t: e.t, u: u, v: e.to }); }); }); return out; }, P: P, pause: function (v) { paused = v; }, tick: function (sec) { for (var i = 0; i < sec * 60; i++) step(1 / 60); }, go: go, hero: hero, setFollow: setFollow, zoomAt: zoomAt, openCharsel: openCharsel, pickChar: pickChar, setLook: setLook, look: function () { return look; }, turn: function (d) { setAuto(false); TT.th = d; TT.pop = 9; render(); TT.pop = 9; render(); }, follow: function () { return follow; } };
 })();
