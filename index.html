@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GMT City — Building products for designers</title>
-<meta name="description" content="GMT – Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder.">
+<meta name="description" content="GMT – Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder, BetterDrop, Better Cleaner và Better Youtube Lyric.">
 <meta name="theme-color" content="#f4f1e8">
 <meta property="og:type" content="website">
 <meta property="og:title" content="GMT City — Building products for designers">
-<meta property="og:description" content="Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder.">
+<meta property="og:description" content="Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder, BetterDrop, Better Cleaner và Better Youtube Lyric.">
 <meta property="og:url" content="https://gmttuts.github.io/">
 <meta property="og:image" content="https://gmttuts.github.io/avatar.jpg">
 <meta property="og:locale" content="en_US">
@@ -139,6 +139,10 @@ button{font:inherit;color:inherit}
 .rows{display:grid;gap:6px;margin:10px 0 12px}
 .rows div{display:flex;justify-content:space-between;gap:10px;border:2px solid var(--ink);background:#fff;padding:6px 10px}
 .rows b{font:400 21px/1.2 var(--hd)}
+.now-h{margin-bottom:4px}
+.now{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px}
+.now li{position:relative;padding-left:16px}
+.now li::before{content:"";position:absolute;left:2px;top:.55em;width:7px;height:7px;background:var(--ink)}
 .big{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px}
 .big div{border:2px solid var(--ink);background:#fff;padding:10px;box-shadow:3px 3px 0 var(--ink)}
 .big b{display:block;font:400 42px/1 var(--hd)}
@@ -187,7 +191,7 @@ form.f .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pxwin.wide article[data-zone="6"]>.soc{grid-row:4/7;grid-template-columns:1fr;align-content:start}
 .pxwin.wide article[data-zone="0"]>*,.pxwin.wide article[data-zone="3"]>*{grid-column:1/-1}
 .pxwin.wide article[data-zone="0"]>.rows,.pxwin.wide article[data-zone="3"]>.big{grid-column:1}
-.pxwin.wide article[data-zone="0"]>p:not(.lead),.pxwin.wide article[data-zone="3"]>.rows{grid-column:2}
+.pxwin.wide article[data-zone="0"]>p:not(.lead),.pxwin.wide article[data-zone="0"]>.now,.pxwin.wide article[data-zone="3"]>.rows{grid-column:2}
 .pxwin.arcade{inset:0;margin:auto;width:min(780px,calc(100vw - 40px));height:fit-content;max-height:calc(100dvh - 32px);z-index:8;background:#1b1830;color:var(--cream)}
 .pxwin.arcade .pxbar{background:var(--cream);color:var(--ink)}
 .ar-body{padding:14px 16px 10px;overflow:hidden}
@@ -493,7 +497,13 @@ body.charsel-open .zoom,body.charsel-open .route,body.charsel-open .hint{visibil
       <div><span>Solo Founder</span><b><span lang="en">2 years</span><span lang="vi">2 năm</span></b></div>
     </div>
     <p><span lang="en">For the last two years I've been building SaaS on my own: websites and apps for macOS and Windows, including tools for motion designers.</span><span lang="vi">2 năm nay tôi tự xây sản phẩm SaaS: website và ứng dụng cho macOS, Windows, trong đó có các công cụ dành cho motion designer.</span></p>
-    <p><b><span lang="en">Now building:</span><span lang="vi">Đang làm:</span></b> Better Finder — <span lang="en">a Finder replacement made for multimedia people.</span><span lang="vi">ứng dụng thay thế Finder, dành cho dân làm multimedia.</span></p>
+    <p class="now-h"><b><span lang="en">Now building:</span><span lang="vi">Đang làm:</span></b></p>
+    <ul class="now">
+      <li><b>Better Finder</b> — <span lang="en">a Finder replacement made for multimedia people.</span><span lang="vi">ứng dụng thay thế Finder, dành cho dân làm multimedia.</span></li>
+      <li><b>BetterDrop</b> — <span lang="en">an AirDrop alternative that sends files across every device: Mac, Windows, Android and iOS.</span><span lang="vi">ứng dụng thay thế AirDrop, chuyển file tới mọi thiết bị: Mac, Windows, Android và iOS.</span></li>
+      <li><b>Better Cleaner</b> — <span lang="en">sweeps the junk files off your computer.</span><span lang="vi">dọn sạch file rác trên máy của bạn.</span></li>
+      <li><b>Better Youtube Lyric</b> — <span lang="en">a YouTube extension that finds lyrics and karaoke versions fast, right in the browser.</span><span lang="vi">extension cho YouTube, tìm nhanh lyric và bản karaoke ngay trên trình duyệt.</span></li>
+    </ul>
   </article>
 
   <article data-zone="1">
