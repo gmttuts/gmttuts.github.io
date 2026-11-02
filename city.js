@@ -86,6 +86,15 @@
     over: el('g', { 'pointer-events': 'none' }, cam),   // front copies of thin props, shown when an actor walks behind them
     fx: el('g', { 'pointer-events': 'none' }, cam)
   };
+  // coloured neon halos for glowing signs at night (#neon0..2: orange, green, yellow)
+  ['#ff8a3d', '#3dffa0', '#ffe14d'].forEach(function (col, k) {
+    var f = el('filter', { id: 'neon' + k, x: '-80%', y: '-80%', width: '260%', height: '260%' }, defs);
+    el('feGaussianBlur', { in: 'SourceAlpha', stdDeviation: 4, result: 'b' }, f);
+    el('feFlood', { 'flood-color': col, 'flood-opacity': 0.95 }, f);
+    el('feComposite', { in2: 'b', operator: 'in', result: 'g' }, f);
+    var m = el('feMerge', null, f);
+    ['g', 'g', 'SourceGraphic'].forEach(function (n) { el('feMergeNode', { in: n }, m); });
+  });
   var gcache = {};
   function grad(col, kind) {
     var id = 'g' + kind + col.slice(1);
@@ -102,6 +111,7 @@
 
   /* ---------- iso primitives ---------- */
   var BOXES = [];   // footprints of everything solid, used by the occlusion audit
+  var STUDIO_STAR = null, SEG_END = null;   // the Motion Studio's star (star power) and a hook run when a trip segment ends
   var TOPS = [], WINS = [], TREES = [];   // box tops (snow), arched windows (lit at night), trees (seasonal crowns)
   function box(g, x, y, z, w, d, h, col, o) {
     o = o || {};
@@ -135,10 +145,10 @@
   function faceR(x, y, z, w, d, h) { var o = P(x + w, y + d, z + h); return 'matrix(' + TW / 2 + ',' + (-TH / 2) + ',0,' + ZH + ',' + o[0] + ',' + o[1] + ')'; }
   function faceT(x, y, z) { var o = P(x, y, z); return 'matrix(' + TW / 2 + ',' + TH / 2 + ',' + (-TW / 2) + ',' + TH / 2 + ',' + o[0] + ',' + o[1] + ')'; }
   var NSS = { 'vector-effect': 'non-scaling-stroke' };
-  function arch(g, s, t, w, h, fill) {
+  function arch(g, s, t, w, h, fill, line) {
     var r = w / 2;
     var d = 'M' + s + ',' + (t + h) + ' V' + (t + r) + ' A' + r + ',' + r + ' 0 0 1 ' + (s + w) + ',' + (t + r) + ' V' + (t + h) + ' Z';
-    var e = el('path', { d: d, fill: fill || C.ink, stroke: C.ink, 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
+    var e = el('path', { d: d, fill: fill || C.ink, stroke: line || C.ink, 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
     WINS.push({ n: e, g: g, cx: s + w / 2, cy: t + h / 2, w: w, h: h, d: d });
     return e;
   }
@@ -276,10 +286,10 @@
     { n: '01', en: 'Home', vi: 'Nhà', file: 'ABOUT.TXT', col: C.orange, b: [6, 15, 4, 3, 1], hb: 2.2 },
     { n: '02', en: 'Stats Tower', vi: 'Tháp số liệu', file: 'STATS.EXE', col: C.green, b: [1, 9, 3, 3, 2], hb: 3.4 },
     { n: '03', en: 'Cinema', vi: 'Rạp phim', file: 'PROJECTS.MP4', col: C.purple, b: [1, 2, 3, 3, 3], hb: 2.2 },
-    { n: '04', en: 'Dezi Gallery', vi: 'Dezi Gallery', file: 'DEZI.URL', col: C.blue, b: [7, 2, 3, 3, 3], hb: 2.2 },
-    { n: '05', en: 'Workshop', vi: 'Xưởng kỹ năng', file: 'SKILLS.KEY', col: C.yellow, b: [12, 2, 3, 3, 2], hb: 1.6 },
-    { n: '06', en: 'Motion Studio', vi: 'Xưởng motion', file: 'SERVICES.AE', col: C.pink, b: [12, 9, 3, 3, 1], hb: 1.8 },
-    { n: '07', en: 'Post Office', vi: 'Bưu điện', file: 'CONTACT.MAIL', col: C.lilac, b: [12, 15, 3, 3, 1], hb: 3 }
+    { n: '04', en: 'Dezi Gallery', vi: 'Dezi Gallery', file: 'DEZI.URL', col: C.blue, b: [7, 2, 3, 3, 3], hb: 4 },
+    { n: '05', en: 'Workshop', vi: 'Xưởng kỹ năng', file: 'SKILLS.KEY', col: C.yellow, b: [12, 2, 3, 3, 2], hb: 2.2 },
+    { n: '06', en: 'Motion Studio', vi: 'Xưởng motion', file: 'SERVICES.AE', col: C.pink, b: [12, 9, 3, 3, 1], hb: 2.4 },
+    { n: '07', en: 'Post Office', vi: 'Bưu điện', file: 'CONTACT.MAIL', col: C.lilac, b: [12, 15, 3, 3, 1], hb: 3.5 }
   ];
 
   /* Route: closed loop. `s` marks the stop index of a zone. */
@@ -763,6 +773,8 @@
     }
   }
 
+  // false: the zone walls stay bare and the night light comes from street lamps and the buildings on top
+  var WALL_WINDOWS = false;
   ZONES.forEach(function (z, i) {
     var b = z.b;
     item(b[0] + b[2] / 2 + b[1] + b[3] / 2, function (g) {
@@ -775,7 +787,8 @@
       // long walls keep just the two end windows, high up on tall walls; every building has its windows on this face
       var lv = b[4] >= 2 ? 0.35 : b[4] - 0.85;
       var lp = b[2] < 3 ? [0.32, 1.32].slice(0, b[2]) : [0.32, b[2] - 0.68];
-      lp.forEach(function (u) { arch(fl, u, lv, 0.36, 0.6, shade(z.col, -0.55)); });
+      // by day they sit back in the wall's own colour; at night CSS lights them and restores the ink outline
+      if (WALL_WINDOWS) lp.forEach(function (u) { arch(fl, u, lv, 0.36, 0.6, shade(z.col, -0.2), shade(z.col, -0.42)); });
       winDecor(i, w0); band(i, fl, fr); featureWall(i, fr);
       var sn = NODES[STOP_NODE[i]].p, m = 0.42;
       poly(zg, [P(sn[0] - m, sn[1] - m, b[4]), P(sn[0] + m, sn[1] - m, b[4]), P(sn[0] + m, sn[1] + m, b[4]), P(sn[0] - m, sn[1] + m, b[4])], shade(z.col, 0.55), { 'stroke-width': 1.6 });
@@ -927,20 +940,19 @@
       anim(function (t) { gear.setAttribute('transform', 'rotate(' + (t * 60 % 360).toFixed(1) + ')'); });
     },
     function studio(g, b) {
-      var cols = [C.orange, C.green, C.yellow];
+      var cols = [C.orange, C.yellow];
+      // a play box on the front-left edge and a star box on the front corner, clear of the name tag; at night the icons glow like neon signs
+      var spots = [[12.1, 11.45], [14.45, 10.6]];
       cols.forEach(function (c, i) {
-        var px = [12.1, 12.75, 14.05][i], py = 9.12;
+        var px = spots[i][0], py = spots[i][1];
         box(g, px, py, 1, 0.5, 0.5, 0.55, c);
-        var ic = P(px + 0.25, py + 0.25, 2.3);
-        var icg = el('g', { transform: 'translate(' + ic[0] + ',' + ic[1] + ')' }, g);
+        var ic = P(px + 0.25, py + 0.25, 2.05);
+        var icg = el('g', { class: 'neon n' + (i ? 2 : 0), transform: 'translate(' + ic[0] + ',' + ic[1] + ')', 'data-lit': 1 }, g);
+        if (i === 1) STUDIO_STAR = { g: icg, at: [px + 0.25, py + 0.25, 2.05] };
         var inner = el('g', null, icg), edge = null, starF;
         if (i === 0) {
           el('rect', { x: -13, y: -10, width: 26, height: 20, rx: 3, fill: '#fff', stroke: C.ink, 'stroke-width': 2 }, inner);
           el('path', { d: 'M-4,-6 L7,0 L-4,6 Z', fill: C.orange, stroke: C.ink, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, inner);
-        } else if (i === 1) {
-          el('rect', { x: -9, y: -15, width: 18, height: 30, rx: 4, fill: '#fff', stroke: C.ink, 'stroke-width': 2 }, inner);
-          var bars = [0, 1, 2].map(function (k) { return el('rect', { x: -5, y: -9 + k * 7, height: 4, fill: [C.green, C.pink, C.sky][k] }, inner); });
-          anim(function (t) { bars.forEach(function (r, k) { r.setAttribute('width', (4 + 6 * (0.5 + 0.5 * Math.sin(t * 3 + k))).toFixed(1)); }); });
         } else {
           var STAR = 'M0,-14 L4,-4 L14,-4 L6,3 L9,13 L0,7 L-9,13 L-6,3 L-14,-4 L-4,-4 Z';
           var edge = coinEdge(icg, inner, STAR, shade(C.yellow, -0.32));
@@ -948,8 +960,8 @@
         }
         anim(function (t) {
           var by = Math.sin(t * 2.2 + i * 1.3) * 4 + quake(px, py) * 2.2;
-          var sx = i === 2 ? Math.cos(t * 4.2) : 1;
-          if (i === 2 && Math.abs(sx) < 0.14) sx = sx < 0 ? -0.14 : 0.14; // never paper-thin: the edge needs a face to stack
+          var sx = i === 1 ? Math.cos(t * 4.2) : 1;
+          if (i === 1 && Math.abs(sx) < 0.14) sx = sx < 0 ? -0.14 : 0.14; // never paper-thin: the edge needs a face to stack
           inner.setAttribute('transform', 'translate(0,' + by.toFixed(1) + ') scale(' + sx.toFixed(3) + ',1)' + (i === 0 ? ' rotate(' + (Math.sin(t * 1.7) * 8).toFixed(1) + ')' : ''));
           if (edge) {
             var sn = Math.sin(t * 4.2);
@@ -1086,7 +1098,7 @@
 
   /* ---------- floating shapes ---------- */
   function floater(key, fn) { item(key, fn); }
-  [[9.6, 6.2, 1.0, C.pink], [21.4, 6.2, 1.6, C.yellow], [16.2, 13.5, 2.2, C.sky], [4.2, 19.2, 1.8, C.green], [5.6, 0.6, 4.6, C.orange]].forEach(function (f, i) {
+  [[9.6, 6.2, 1.0, C.pink], [21.4, 6.2, 1.6, C.yellow], [16.7, 13.3, 1.3, C.sky], [4.2, 19.2, 1.8, C.green], [5.6, 0.6, 4.6, C.orange]].forEach(function (f, i) {
     floater(f[0] + f[1], function (g) {
       var fg = el('g', null, g);
       box(fg, f[0], f[1], f[2], 0.6, 0.6, 0.6, f[3], { top: shade(f[3], 0.5) });
@@ -1184,8 +1196,15 @@
     }
   }
   // street lamps: posts along the decks, a warm head and a pool of light on the ground at night
-  var LAMPS = [[2.2, 15.0, 1, 18.7], [7.95, 15.12, 1, 24.6], [12.2, 17.8, 1], [12.25, 11.75, 1],
-    [2.2, 8.0, 2, 10.6], [3.7, 2.3, 3], [7.25, 2.7, 3, 12.05], [20.5, 17.9, 0]];
+  // street lamps along the route: the walkway corner, the Stats Tower's corner by the bridge, stair heads and the plaza corners
+  var LAMPS = [[2.2, 16.9, 1], [2.2, 9.1, 2], [3.9, 4.5, 3], [7.1, 4.85, 3], [12.1, 4.9, 2], [13.9, 12.6, 1], [12.2, 17.8, 1], [20.5, 17.9, 0]];
+  // a lamp standing on a deck has to draw after that deck (which is drawn as one piece)
+  var DECKS = [[6, 15, 10, 18, 1, 24.5], [1, 9, 4, 12, 2, 13], [1, 2, 4, 5, 3, 6], [7, 2, 10, 5, 3, 12], [12, 2, 15, 5, 2, 17], [12, 9, 15, 12, 1, 24],
+    [12, 15, 15, 18, 1, 30], [2, 14, 3, 16.2, 1, 18.6], [2, 16.2, 6, 17.2, 1, 18.6], [13, 12, 14, 15, 1, 27], [10, 16.2, 12, 17.2, 1, 27.5], [2, 7, 3, 9, 2, 10.5]];
+  LAMPS.forEach(function (l) {
+    if (l[3] || !l[2]) return;
+    DECKS.forEach(function (d) { if (l[2] === d[4] && l[0] >= d[0] && l[0] <= d[2] && l[1] >= d[1] && l[1] <= d[3]) l[3] = Math.max(l[0] + l[1] + 0.05, d[5] + 0.05); });
+  });
   var LAMPF = [];
   function lampArt(lg, b, hgt, glow) {
     if (glow) el('ellipse', { class: 'on-night glow', cx: b[0], cy: b[1], rx: 42, ry: 21, fill: 'url(#glowPool)' }, lg);
@@ -1205,17 +1224,25 @@
     lampArt(fg, b, hgt, false);
     LAMPF.push({ n: fg, k: l[0] + l[1], x: b[0], base: b[1] + 3, top: b[1] - hgt - 17, on: false });
   });
+  // uses each actor's real drawn box (in city units), so wide outfits and tall jumps are covered too
   function lampsFront() {
-    var who = [];
-    var hp = hero.sp || P(hero.x, hero.y, hero.z);
-    who.push([hero.x + hero.y, hp[0], hp[1], 13, 74]);
-    CRE.forEach(function (c) { if (c.sy) who.push([c.cx + c.cy, c.sx, c.sy, 15, 40]); });
+    var m = cam.getCTM(), who = [];
+    function add(k, n, me) {
+      var r = n.getBoundingClientRect();
+      if (r.width) who.push([k, (r.left - m.e) / m.a, (r.right - m.e) / m.a, (r.top - m.f) / m.d, (r.bottom - m.f) / m.d, me]);
+    }
+    add(hero.x + hero.y, hero.root, true);
+    CRE.forEach(function (c) { if (c.sy) add(c.cx + c.cy, c.g); });
     LAMPF.forEach(function (f) {
-      var on = false;
-      for (var i = 0; i < who.length && !on; i++) {
-        var a = who[i];
-        on = a[0] < f.k - 0.05 && Math.abs(a[1] - f.x) < a[3] + 8 && a[2] < f.base && a[2] - a[4] < f.base;
+      var on = false, heroFront = false;
+      for (var i = 0; i < who.length; i++) {
+        var a = who[i], hit = a[2] > f.x - 9 && a[1] < f.x + 9 && a[4] > f.top && a[3] < f.base;
+        if (!hit) continue;
+        if (a[0] < f.k - 0.05) on = true;
+        else if (a[5]) heroFront = true;
       }
+      // one overlay can't sit both above a creature behind the post and below the hero in front of it: the hero wins
+      if (heroFront) on = false;
       if (on !== f.on) { f.on = on; f.n.setAttribute('display', on ? '' : 'none'); }
     });
   }
@@ -1600,8 +1627,15 @@
   var SFX = (function () {
     var ctx = null, on = true;
     try { on = localStorage.getItem('city-sound') !== '0'; } catch (e) {}
+    // effects and background music each get their own volume, remembered across visits
+    var vol = { mus: 0.45, sfx: 0.8 }, MUS_LEVEL = 0.7, sfxBus = null, musBus = null;
+    try { var sv = JSON.parse(localStorage.getItem('city-vol') || 'null'); if (sv) { if (sv.mus >= 0 && sv.mus <= 1) vol.mus = +sv.mus; if (sv.sfx >= 0 && sv.sfx <= 1) vol.sfx = +sv.sfx; } } catch (e) {}
     function ac() {
-      if (!ctx) { var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ctx = new A(); }
+      if (!ctx) {
+        var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ctx = new A();
+        sfxBus = ctx.createGain(); sfxBus.gain.value = vol.sfx; sfxBus.connect(ctx.destination);
+        musBus = ctx.createGain(); musBus.gain.value = vol.mus * MUS_LEVEL; musBus.connect(ctx.destination);
+      }
       if (ctx.state === 'suspended') ctx.resume();
       return ctx;
     }
@@ -1614,7 +1648,7 @@
       if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t + d);
       g.gain.setValueAtTime(v || 0.04, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      o.connect(g); g.connect(a.destination);
+      o.connect(g); g.connect(sfxBus);
       o.start(t); o.stop(t + d + 0.03);
     }
     function noise(d, v, f) {
@@ -1624,7 +1658,7 @@
       for (var i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
       var s = a.createBufferSource(), bp = a.createBiquadFilter(), g = a.createGain();
       s.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = f || 1200; g.gain.value = v || 0.08;
-      s.connect(bp); bp.connect(g); g.connect(a.destination); s.start();
+      s.connect(bp); bp.connect(g); g.connect(sfxBus); s.start();
     }
     // a looping rush of water for the slide; it keeps running silently once started
     var wSrc = null, wFil = null, wGain = null;
@@ -1637,14 +1671,203 @@
         wSrc = a.createBufferSource(); wSrc.buffer = buf; wSrc.loop = true;
         wFil = a.createBiquadFilter(); wFil.type = 'bandpass'; wFil.Q.value = 0.9;
         wGain = a.createGain(); wGain.gain.value = 0;
-        wSrc.connect(wFil); wFil.connect(wGain); wGain.connect(a.destination); wSrc.start();
+        wSrc.connect(wFil); wFil.connect(wGain); wGain.connect(sfxBus); wSrc.start();
       }
       var t = a.currentTime, v = on && lv > 0 ? 0.03 + lv * 0.07 : 0, icy = ENV && ENV.season === 'winter';
       if (icy) v *= 0.6;
       wFil.frequency.setTargetAtTime((icy ? 2600 + lv * 1800 : 600 + lv * 1300) + Math.random() * 250, t, 0.04);
       wGain.gain.setTargetAtTime(v, t, v ? 0.05 : 0.12);
     }
+    // star power: an original, very fast chiptune loop (square lead, triangle bass, noise hats) for `sec` seconds
+    var tune = null;
+    function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+    function starTune(sec) {
+      killTune();
+      musicHold(true, sec + 1.5);
+      if (!on) return;
+      var a = ac(); if (!a) return;
+      var out = a.createGain(), t0 = a.currentTime + 0.05, e = 0.13, nodes = [];
+      out.connect(sfxBus);
+      var LEAD = [76, 79, 84, 79, 76, 79, 81, 79, 77, 81, 84, 81, 77, 81, 79, 77, 76, 81, 84, 88, 86, 84, 81, 79, 79, 83, 86, 83, 79, 77, 76, 74];
+      var BASS = [48, 55, 48, 55, 48, 55, 48, 55, 41, 48, 41, 48, 41, 48, 41, 48, 45, 52, 45, 52, 45, 52, 45, 52, 43, 50, 43, 50, 43, 50, 43, 50];
+      var nb = a.createBuffer(1, a.sampleRate * 0.04 | 0, a.sampleRate), ch = nb.getChannelData(0);
+      for (var i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
+      function note(f, t, d, type, v) {
+        var o = a.createOscillator(), g = a.createGain();
+        o.type = type; o.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + d + 0.02); nodes.push(o);
+      }
+      for (var k = 0, n = Math.floor(sec / e); k < n; k++) {
+        var t = t0 + k * e, j = k % 32;
+        note(hz(LEAD[j]), t, e * 0.85, 'square', 0.026);
+        note(hz(BASS[j]), t, e * 0.95, 'triangle', 0.075);
+        var src = a.createBufferSource(), hp = a.createBiquadFilter(), hg = a.createGain();
+        src.buffer = nb; hp.type = 'highpass'; hp.frequency.value = k % 2 ? 7500 : 5200; hg.gain.value = k % 4 ? 0.022 : 0.05;
+        src.connect(hp); hp.connect(hg); hg.connect(out); src.start(t); nodes.push(src);
+      }
+      tune = { out: out, nodes: nodes };
+    }
+    function stopTune() { killTune(); musicHold(false); }
+    function killTune() {
+      if (!tune) return;
+      var tn = tune; tune = null;
+      tn.out.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+      setTimeout(function () { tn.nodes.forEach(function (o) { try { o.stop(); } catch (e) {} }); tn.out.disconnect(); }, 400);
+    }
+    /* ---- background music: eight original chiptune loops, one per season × day/night ----
+       Each song is 8 bars of 8 eighth-notes. `mel` is scale degrees from `key` (0 = root,
+       7 = an octave up), '-' holds the note before, '.' rests. `ch` is one chord root per bar.
+       Day songs bounce; night songs slow down, soften (lowpass) and echo. */
+    var MAJ = [0, 2, 4, 5, 7, 9, 11], MIN = [0, 2, 3, 5, 7, 8, 10], DOR = [0, 2, 3, 5, 7, 9, 10], MIX = [0, 2, 4, 5, 7, 9, 10];
+    var SONGS = {
+      'spring-d': { en: 'Blossom Walk', vi: 'Dạo phố hoa xuân', bpm: 112, key: 72, sc: MAJ, lead: 'p25', bass: 'walk', bed: 'arp', perc: 1, ch: [0, 4, 5, 3, 0, 4, 3, 4],
+        mel: '4 - 2 4 7 - 4 2  1 - 4 6 8 - 6 4  5 - 7 5 2 - 0 2  3 - 5 3 0 - - .  4 - 2 4 7 - 9 7  8 - 6 4 6 - 4 1  3 5 7 5 3 - 2 1  1 - - . 4 - . .' },
+      'spring-n': { en: 'Spring Drizzle', vi: 'Mưa xuân đêm', bpm: 76, key: 65, sc: MAJ, lead: 'tri', bass: 'drone', bed: 'pad', perc: 0, night: 1, ch: [0, 3, 5, 4, 0, 3, 1, 4],
+        mel: '2 - - 4 - - 7 -  5 - - - 3 - . .  4 - - 2 - - 0 -  1 - - - - - . .  2 - 4 - 7 - 9 -  8 - - 7 5 - . .  3 - - 1 - - 3 -  4 - - - - - . .' },
+      'summer-d': { en: 'Sunny Street', vi: 'Phố nắng hè', bpm: 132, key: 67, sc: MIX, lead: 'sq', bass: 'pulse', bed: 'arp', perc: 2, ch: [0, 6, 3, 0, 0, 6, 3, 4],
+        mel: '0 2 4 . 4 2 4 7  6 . 8 6 3 . 1 .  3 5 7 . 5 3 5 7  9 - 7 . 4 . 2 .  7 . 7 9 7 . 4 .  8 . 8 10 8 . 6 .  7 5 3 5 7 . 9 .  8 - 6 . 4 . 1 .' },
+      'summer-n': { en: 'Fireflies', vi: 'Đom đóm đêm hè', bpm: 92, key: 74, sc: MAJ, lead: 'bell', bass: 'root', bed: 'arp', perc: 1, night: 1, ch: [0, 5, 3, 4, 0, 5, 3, 4],
+        mel: '4 - - 2 4 - 7 -  7 - 5 - 2 - - .  3 - 5 - 7 - 5 3  4 - - - 1 - . .  4 - 7 - 9 - 7 4  5 - - 4 2 - - .  3 - 2 - 0 - 2 3  1 - - - - - . .' },
+      'autumn-d': { en: 'Golden Leaves', vi: 'Lá vàng thu', bpm: 100, key: 64, sc: DOR, lead: 'p12', bass: 'walk', bed: 'arp', perc: 1, swing: 0.14, ch: [0, 3, 0, 6, 0, 3, 2, 6],
+        mel: '0 . 2 4 . 2 0 .  3 . 5 7 . 5 3 2  4 - 2 0 . 2 4 .  6 - - 5 4 - . .  7 . 6 4 . 2 4 .  5 . 3 5 . 7 8 7  2 4 6 4 2 - 0 .  1 - 6 . -1 - . .' },
+      'autumn-n': { en: 'Harvest Moon', vi: 'Trăng rằm thu', bpm: 88, key: 65, sc: MAJ, lead: 'tri', bass: 'root', bed: 'arp', perc: 1, swing: 0.16, night: 1, ch: [0, 5, 3, 4, 0, 2, 3, 4],
+        mel: '0 2 4 - 7 - 4 2  5 - 4 5 7 - - .  3 5 7 - 8 7 5 3  4 - - 6 4 - . .  7 - 9 7 4 - 2 4  6 - 4 - 2 - 4 -  5 - 7 - 8 - 7 5  4 - 1 - 4 - . .' },
+      'winter-d': { en: 'First Snow', vi: 'Tuyết đầu mùa', bpm: 96, key: 72, sc: MAJ, lead: 'bell', bass: 'root', bed: 'arp', arpUp: 1, perc: 1, ch: [0, 5, 3, 4, 0, 5, 1, 4],
+        mel: '7 . 4 . 2 . 4 .  5 . 7 . 9 - . .  8 . 7 . 5 . 3 .  4 - . . 6 - . .  7 . 9 . 11 . 9 .  7 . 5 . 4 - . .  3 . 5 . 8 . 7 .  6 - . . 4 - . .' },
+      'winter-n': { en: 'Winter Night', vi: 'Đêm đông', bpm: 62, key: 74, sc: MIN, lead: 'bell', bass: 'drone', bed: 'pad', perc: 0, night: 1, ch: [0, 5, 3, 4, 0, 5, 3, 4],
+        mel: '0 - - 2 4 - - -  5 - - 4 2 - - -  3 - - 5 7 - 5 -  4 - - - - - . .  7 - - 6 4 - - -  5 - 4 - 2 - - -  3 - - 2 0 - - -  1 - - - - - . .' }
+    };
+    Object.keys(SONGS).forEach(function (k) {
+      var S = SONGS[k], tk = S.mel.split(/\s+/).filter(Boolean), m = [];
+      tk.forEach(function (t, i) {
+        if (t === '-' || t === '.') { m.push(null); return; }
+        var n = 1; while (tk[i + n] === '-') n++;
+        m.push({ d: +t, len: n });
+      });
+      S.m = m;
+    });
+    var LEADV = { sq: 0.028, p25: 0.03, p12: 0.034, tri: 0.08, bell: 0.06 };
+    function deg(S, d, base) { var o = Math.floor(d / 7), r = ((d % 7) + 7) % 7; return base + 12 * o + S.sc[r]; }
+    var waves = {};
+    function pulse(duty) {
+      if (waves[duty]) return waves[duty];
+      var n = 32, re = new Float32Array(n), im = new Float32Array(n);
+      for (var i = 1; i < n; i++) re[i] = 2 / (i * Math.PI) * Math.sin(i * Math.PI * duty);
+      return (waves[duty] = ctx.createPeriodicWave(re, im));
+    }
+    function voice(T, type, f, t, d, v) {
+      var o = ctx.createOscillator(), g = ctx.createGain(), end;
+      if (type === 'p25' || type === 'p12') o.setPeriodicWave(pulse(type === 'p25' ? 0.25 : 0.125));
+      else o.type = type === 'sq' ? 'square' : type === 'tri' || type === 'pad' ? 'triangle' : 'sine';
+      o.frequency.setValueAtTime(f, t);
+      if (type === 'bell') {
+        // music box: a sine with a quick-fading overtone and a long ring
+        end = t + Math.max(d, 0.5) * 1.5;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, end);
+        var o2 = ctx.createOscillator(), g2 = ctx.createGain();
+        o2.type = 'triangle'; o2.frequency.setValueAtTime(f * 3, t);
+        g2.gain.setValueAtTime(v * 0.18, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+        o2.connect(g2); g2.connect(T.in); o2.start(t); o2.stop(t + 0.3);
+      } else if (type === 'pad') {
+        end = t + d;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + d * 0.3); g.gain.setValueAtTime(v, t + d * 0.7); g.gain.linearRampToValueAtTime(0, end);
+      } else {
+        end = t + d;
+        g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(v * 0.5, t + d * 0.85); g.gain.linearRampToValueAtTime(0, end);
+      }
+      o.connect(g); g.connect(T.in); o.start(t); o.stop(end + 0.05);
+    }
+    var hatBuf = null;
+    function hat(T, t, v, f) {
+      if (!hatBuf) { hatBuf = ctx.createBuffer(1, ctx.sampleRate * 0.03 | 0, ctx.sampleRate); var c = hatBuf.getChannelData(0); for (var i = 0; i < c.length; i++) c[i] = (Math.random() * 2 - 1) * (1 - i / c.length); }
+      var s = ctx.createBufferSource(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+      s.buffer = hatBuf; hp.type = 'highpass'; hp.frequency.value = f || 6500; g.gain.value = v;
+      s.connect(hp); hp.connect(g); g.connect(T.in); s.start(t);
+    }
+    function kick(T, t, v) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g); g.connect(T.in); o.start(t); o.stop(t + 0.2);
+    }
+    function mstep(T, k, t) {
+      var S = T.s, i = k % 64, pos = i & 7, root = S.ch[i >> 3], e = T.dt;
+      if (S.swing && pos % 2) t += e * S.swing;
+      var n = S.m[i];
+      if (n) voice(T, S.lead, hz(deg(S, n.d, S.key)), t, n.len * e * 0.95, LEADV[S.lead]);
+      var lo = S.key - 24;
+      if (S.bass === 'walk') { if (pos % 2 === 0) voice(T, 'tri', hz(deg(S, root + [0, 4, 2, 4][pos / 2], lo)), t, e * 1.6, 0.07); }
+      else if (S.bass === 'pulse') voice(T, 'tri', hz(deg(S, root + (pos === 6 ? 4 : 0), lo)), t, e * 0.75, 0.065);
+      else if (S.bass === 'root') { if (pos === 0 || pos === 4) voice(T, 'tri', hz(deg(S, root, lo)), t, e * 3.6, 0.06); }
+      else if (pos === 0) voice(T, 'pad', hz(deg(S, root, lo)), t, e * 8, 0.07);
+      var mid = S.key - 12 + (S.arpUp ? 12 : 0);
+      if (S.bed === 'arp') {
+        var ad = root + [0, 2, 4, 7, 4, 2, 4, 2][pos];
+        if (S.arpUp) voice(T, 'bell', hz(deg(S, ad, mid)), t, e, 0.016);
+        else voice(T, S.night ? 'tri' : 'sq', hz(deg(S, ad, mid)), t, e * 0.6, S.night ? 0.028 : 0.01);
+      } else if (pos === 0) [0, 2, 4].forEach(function (c) { voice(T, 'pad', hz(deg(S, root + c, mid)), t, e * 8, 0.016); });
+      if (S.perc >= 1 && pos % 2) hat(T, t, S.perc > 1 ? 0.016 : 0.01);
+      if (S.perc >= 1 && pos === 0) kick(T, t, S.perc > 1 ? 0.06 : 0.035);
+      if (S.perc > 1 && pos === 4) { kick(T, t, 0.05); hat(T, t, 0.02, 2500); }
+    }
+    var M = { cur: null, hold: false, holdT: null, timer: null };
+    function songKey() { return ENV ? ENV.season + (ENV.night ? '-n' : '-d') : null; }
+    function trackStart(key) {
+      var S = SONGS[key], now = ctx.currentTime;
+      var T = { key: key, s: S, dt: 30 / S.bpm, step: 0, next: now + 0.15 };
+      T.in = ctx.createGain(); T.out = ctx.createGain();
+      T.out.gain.setValueAtTime(0, now); T.out.gain.linearRampToValueAtTime(1, now + 1.5);
+      var head = T.in;
+      if (S.night) { var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; head.connect(lp); head = lp; }
+      head.connect(T.out); T.out.connect(musBus);
+      if (S.night) {
+        var dl = ctx.createDelay(1), fb = ctx.createGain(), wet = ctx.createGain();
+        dl.delayTime.value = T.dt * 3; fb.gain.value = 0.3; wet.gain.value = 0.3;
+        T.out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(musBus);
+        T.fx = [dl, fb, wet];
+      }
+      M.cur = T;
+      if (SFX.onSong) SFX.onSong();
+    }
+    function trackStop(T, fast) {
+      if (!T) return;
+      T.out.gain.cancelScheduledValues(ctx.currentTime);
+      T.out.gain.setTargetAtTime(0, ctx.currentTime, fast ? 0.08 : 0.5);
+      setTimeout(function () { T.out.disconnect(); if (T.fx) T.fx.forEach(function (n) { n.disconnect(); }); }, fast ? 1500 : 4000);
+    }
+    function musicKill() { trackStop(M.cur, true); M.cur = null; }
+    // the star tune takes over: music ducks out, then comes back from the top afterwards
+    function musicHold(v, safety) {
+      clearTimeout(M.holdT);
+      if (v) { M.hold = true; musicKill(); M.holdT = setTimeout(function () { M.hold = false; }, safety * 1000); }
+      else M.holdT = setTimeout(function () { M.hold = false; }, 900);
+    }
+    function musicTick() {
+      if (!on || M.hold || !ctx || ctx.state !== 'running' || document.hidden) return;
+      var key = songKey(); if (!key || !SONGS[key]) return;
+      if (!M.cur || M.cur.key !== key) { trackStop(M.cur); trackStart(key); }
+      var T = M.cur, now = ctx.currentTime;
+      if (T.next < now - 0.1) T.next = now + 0.05;
+      while (T.next < now + 0.3) { mstep(T, T.step, T.next); T.step++; T.next += T.dt; }
+    }
+    M.timer = setInterval(musicTick, 80);
+    document.addEventListener('visibilitychange', function () {
+      if (!ctx) return;
+      if (document.hidden) ctx.suspend(); else if (on) ctx.resume();
+    });
+    // browsers only allow sound after the first tap or key press
+    function unlock() { if (on) ac(); }
+    document.addEventListener('pointerdown', unlock, true);
+    document.addEventListener('keydown', unlock, true);
     return {
+      starTune: starTune,
+      stopTune: stopTune,
+      // the star pops off its box, gets gobbled, and the power kicks in / wears off
+      starPop: function () { tone(520, 0.16, 'square', 0.035, 2.2); },
+      chomp: function () { tone(180 + Math.random() * 40, 0.06, 'square', 0.04, 0.6); },
+      powerUp: function () { [72, 76, 79, 84, 88, 91].forEach(function (m, i) { tone(hz(m), 0.07, 'square', 0.032, 0, i * 0.045); }); },
+      powerDown: function () { [84, 79, 76, 72].forEach(function (m, i) { tone(hz(m), 0.08, 'square', 0.028, 0, i * 0.07); }); },
       // footsteps sound like what's underfoot: soft roof tap, sharper stair tick, hollow wooden bridge knock
       step: function (kind) {
         if (kind === 'stairs') { tone(250 + Math.random() * 60, 0.04, 'triangle', 0.04); noise(0.03, 0.025, 2600); }
@@ -1669,7 +1892,16 @@
       pop: function () { tone(260, 0.06, 'square', 0.04, 2.5); },
       tone: tone,
       get on() { return on; },
-      set: function (v) { on = v; if (!v) water(0); try { localStorage.setItem('city-sound', v ? '1' : '0'); } catch (e) {} if (v) ac(); }
+      set: function (v) { on = v; if (!v) { water(0); killTune(); musicKill(); } try { localStorage.setItem('city-sound', v ? '1' : '0'); } catch (e) {} if (v) ac(); },
+      // 'mus' or 'sfx', 0..1
+      vol: function (k, v) {
+        if (v === undefined) return vol[k];
+        vol[k] = clamp(v, 0, 1);
+        if (ctx) (k === 'mus' ? musBus : sfxBus).gain.setTargetAtTime(k === 'mus' ? vol.mus * MUS_LEVEL : vol.sfx, ctx.currentTime, 0.05);
+        try { localStorage.setItem('city-vol', JSON.stringify(vol)); } catch (e) {}
+      },
+      song: function () { var S = SONGS[songKey()]; return S ? { key: songKey(), en: S.en, vi: S.vi } : null; },
+      onSong: null
     };
   })();
 
@@ -2432,6 +2664,7 @@
     };
 
     function nextSeg() {
+      if (SEG_END && H.seg) SEG_END(H.seg);
       if (RW) rewind(false);
       if (SLIDE_OVER) SLIDE_OVER.setAttribute('display', 'none');
       SFX.water(0);
@@ -2562,14 +2795,15 @@
     easeOut: 'M11,-26 H-1 L-13,-13 L-1,0 H11 L1,-13 Z'
   };
   var NAMES = { linear: 'LINEAR', ease: 'EASY EASE', hold: 'HOLD', bezier: 'AUTO BEZIER', easeIn: 'EASE IN', easeOut: 'EASE OUT' };
+  // creature beats kept clear of the stop pads, lamps and neon signs so nothing stacks on the hero
   var CRE = [
-    { type: 'linear', col: C.sky, a: [6.6, 17.5], b: [9.6, 17.5], z: 1 },
-    { type: 'ease', col: C.green, a: [3.6, 9.25], b: [3.6, 9.75], z: 2 },
-    { type: 'hold', col: C.yellow, a: [1.45, 3.6], b: [1.45, 4.75], z: 3 },
-    { type: 'bezier', col: C.pink, a: [7.5, 4.75], b: [9.6, 4.75], z: 3 },
-    { type: 'easeIn', col: C.purple, a: [12.3, 3.62], b: [12.95, 3.62], z: 2 },
-    { type: 'easeOut', col: C.orange, a: [12.5, 9.95], b: [12.65, 10.55], z: 1 },
-    { type: 'bezier', col: C.lilac, a: [14.4, 17.3], b: [14.4, 17.75], z: 1 },
+    { type: 'linear', col: C.sky, a: [6.6, 17.5], b: [7.5, 17.5], z: 1 },
+    { type: 'ease', col: C.green, a: [3.75, 9.25], b: [3.75, 9.75], z: 2 },
+    { type: 'hold', col: C.yellow, a: [1.2, 4.35], b: [1.2, 4.85], z: 3 },
+    { type: 'bezier', col: C.pink, a: [8.05, 4.8], b: [8.25, 4.8], z: 3, line: 1 },
+    { type: 'easeIn', col: C.purple, a: [12.1, 3.83], b: [12.9, 4.63], z: 2, line: 1 },
+    { type: 'easeOut', col: C.orange, a: [13.5, 13.8], b: [13.5, 14.6], z: 1 },
+    { type: 'bezier', col: C.lilac, a: [14.5, 15.4], b: [14.5, 16.0], z: 1 },
     { type: 'hold', col: C.mint, a: [8.45, 2.55], b: [9.45, 2.75], z: 4.4, small: 1 }
   ];
   function easeFn(type, u) {
@@ -2611,28 +2845,59 @@
     if (x1 - x0 < 0.4) { x0 -= 0.12; x1 += 0.12; }
     if (y1 - y0 < 0.4) { y0 -= 0.12; y1 += 0.12; }
     c.R = [x0, x1, y0, y1];
-    c.x = lerp(x0, x1, Math.random()); c.y = lerp(y0, y1, Math.random());
+    var u0 = Math.random();
+    c.x = c.line ? lerp(c.a[0], c.b[0], u0) : lerp(x0, x1, Math.random()); c.y = c.line ? lerp(c.a[1], c.b[1], u0) : lerp(y0, y1, Math.random());
     c.kx = 0; c.ky = 0; c.scare = 0; c.face = Math.random() < 0.5 ? -1 : 1;
     c.st = 'idle'; c.timer = 0; c.dur = Math.random() * 2;
   });
   function rnd(a, b) { return a + Math.random() * (b - a); }
   // Each creature picks its next little action at random, with random timing.
+  // a creature never settles in front of / behind the hero while the hero stands at a stop
+  function clearOfHero(c, x, y) {
+    if (hero.mode !== 'idle') return true;
+    var a = P(x, y, c.z), h = hero.sp || P(hero.x, hero.y, hero.z);
+    return Math.abs(a[0] - h[0]) > 40 || Math.abs(a[1] - h[1]) > 70;
+  }
+  // and never walks across the hero to reach the other side
+  function sameSide(c, x, y) {
+    if (hero.mode !== 'idle') return true;
+    var h = (hero.sp || P(hero.x, hero.y, hero.z))[0];
+    return (P(x, y, c.z)[0] - h) * (P(c.x, c.y, c.z)[0] - h) > 0;
+  }
+  function spotFor(c, near) {
+    var best = null, far = -1;
+    for (var n = 0; n < 20; n++) {
+      // `line` creatures pace along a→b only (a clear lane on a crowded deck), the rest roam their box
+      var u = Math.random(), x = c.line ? lerp(c.a[0], c.b[0], u) : rnd(c.R[0], c.R[1]), y = c.line ? lerp(c.a[1], c.b[1], u) : rnd(c.R[2], c.R[3]);
+      if (Math.hypot(x - c.x, y - c.y) < near && n < 8) continue;
+      if (clearOfHero(c, x, y) && (n > 16 || sameSide(c, x, y))) return [x, y];
+      var h = hero.sp || P(hero.x, hero.y, hero.z), d = Math.abs(P(x, y, c.z)[0] - h[0]);
+      if (d > far) { far = d; best = [x, y]; }
+    }
+    return best || [c.x, c.y];
+  }
   function pickAction(c) {
     c.timer = 0;
     if (c.st !== 'idle') { c.st = 'idle'; c.dur = rnd(0.25, 1.8); return; }
+    // standing in the hero's way: step aside first
+    if (!clearOfHero(c, c.x, c.y)) {
+      var away = spotFor(c, 0.2);
+      c.st = 'move'; c.from = [c.x, c.y]; c.to = away;
+      c.dur = clamp(Math.hypot(away[0] - c.x, away[1] - c.y) / 1.4, 0.35, 2.4);
+      return;
+    }
     var r = Math.random();
     // nights get rowdy: tipsy wandering and dancing to one shared beat
-    if (ENV && ENV.night && r < 0.6) {
+    // (creatures squeezed into a lane on a crowded deck sit the party out: there's no room to dance)
+    if (ENV && ENV.night && r < 0.6 && !c.line) {
       if (r < 0.28) {
-        var dx, dy, n = 0;
-        do { dx = rnd(c.R[0], c.R[1]); dy = rnd(c.R[2], c.R[3]); } while (Math.hypot(dx - c.x, dy - c.y) < 0.3 && ++n < 8);
-        c.st = 'drunk'; c.from = [c.x, c.y]; c.to = [dx, dy]; c.dur = rnd(1.6, 3); c.hicAt = rnd(0.3, 0.8);
+        var dt2 = spotFor(c, 0.3);
+        c.st = 'drunk'; c.from = [c.x, c.y]; c.to = dt2; c.dur = rnd(1.6, 3); c.hicAt = rnd(0.3, 0.8);
       } else { c.st = 'party'; c.dur = rnd(2, 4.5); }
       return;
     }
     if (r < 0.46) {
-      var tx, ty, tries = 0;
-      do { tx = rnd(c.R[0], c.R[1]); ty = rnd(c.R[2], c.R[3]); } while (Math.hypot(tx - c.x, ty - c.y) < 0.35 && ++tries < 8);
+      var tg = spotFor(c, 0.35), tx = tg[0], ty = tg[1];
       c.st = 'move'; c.from = [c.x, c.y]; c.to = [tx, ty];
       c.dur = clamp(Math.hypot(tx - c.x, ty - c.y) / rnd(0.6, 2.2), 0.35, 2.4);
     } else if (r < 0.6) { c.st = 'bounce'; c.nb = 1 + Math.floor(Math.random() * 4); c.dur = 0.28 * c.nb + rnd(0, 0.2); }
@@ -3031,8 +3296,21 @@
     sky.className = 'nsky'; sky.setAttribute('aria-hidden', 'true');
     var R = srand(5), st = [];
     for (var i = 0; i < 90; i++) st.push(Math.round(R() * 100) + 'vw ' + Math.round(R() * 100) + 'vh 0 ' + (R() < 0.2 ? '1px' : '0') + ' rgba(255,255,255,' + (0.35 + R() * 0.6).toFixed(2) + ')');
-    sky.innerHTML = '<i class="st" style="box-shadow:' + st.slice(0, 45).join(',') + '"></i><i class="st st2" style="box-shadow:' + st.slice(45).join(',') + '"></i><i class="moon"></i>';
+    sky.innerHTML = '<i class="st" style="box-shadow:' + st.slice(0, 45).join(',') + '"></i><i class="st st2" style="box-shadow:' + st.slice(45).join(',') + '"></i>';
     document.body.insertBefore(sky, svg);
+    // the moon lives in the city's own space (behind everything, above the top-right corner), so it pans and zooms with the camera
+    var moon = el('g', { id: 'moon', class: 'on-night', 'pointer-events': 'none' }, null);
+    L.world.insertBefore(moon, L.world.firstChild);
+    [['spring', 34, '#fff6d6', '#f1d98a'], ['summer', 34, '#fff6d6', '#f1d98a'], ['winter', 34, '#fff6d6', '#f1d98a'], ['autumn', 46, '#ffd08a', '#f2a65a']].forEach(function (m) {
+      var mg = sgroup(moon, m[0]), mx = 380, my = -230, r = m[1], id = 'moonClip' + m[0];
+      el('circle', { class: 'glow', cx: mx, cy: my, r: r * 2.4, fill: 'url(#glowW)', opacity: 0.55 }, mg);
+      var cp = el('clipPath', { id: id }, defs);
+      el('circle', { cx: mx, cy: my, r: r }, cp);
+      el('circle', { cx: mx, cy: my, r: r, fill: m[2], 'data-lit': 1 }, mg);
+      el('circle', { cx: mx + r * 0.62, cy: my + r * 0.28, r: r * 0.95, fill: m[3], 'clip-path': 'url(#' + id + ')', 'data-lit': 1 }, mg);
+      el('circle', { cx: mx - r * 0.2, cy: my - r * 0.05, r: r * 0.95, fill: m[2], 'clip-path': 'url(#' + id + ')', 'data-lit': 1 }, mg);
+      el('circle', { cx: mx, cy: my, r: r, fill: 'none', stroke: C.ink, 'stroke-width': 2.5, 'data-lit': 1 }, mg);
+    });
     var wx = document.createElement('canvas');
     wx.className = 'wx'; wx.setAttribute('aria-hidden', 'true');
     document.body.insertBefore(wx, svg.nextSibling);
@@ -3156,6 +3434,8 @@
     // everything lives in the city's own coordinates (the camera's), inside the box around the city,
     // so dragging the view away leaves the weather behind instead of pinning it to the screen
     var parts = [], fireT = 4, fires = [], flies = [], rainOn = false, wind = 0, B = null, ks = 1;
+    var drops = [];
+    function drop(top) { return { x: B.x0 + Math.random() * (B.w + 200), y: top ? B.y0 - Math.random() * 80 : B.y0 + Math.random() * B.h, v: 420 + Math.random() * 260, l: 8 + Math.random() * 10 }; }
     function wxBox() {
       if (B) return B;
       var bb = L.world.getBBox();
@@ -3220,15 +3500,25 @@
         if (p.x > vx0 && p.x < vx1 && p.y > vy0 && p.y < vy1) drawPart(p);
       }
       // autumn: a passing drizzle every couple of minutes
-      rainOn = E.season === 'autumn' && Math.sin(t / 37) > 0.45;
+      // the drizzle eases in and out, gusts come and go, and every drop has its own spot, speed, length and weight
+      var rs = Math.sin(t / 37);
+      rainOn = E.season === 'autumn' && rs > 0.45;
       if (rainOn) {
-        c.strokeStyle = E.ne > 0.5 ? 'rgba(170,190,255,.55)' : 'rgba(80,110,170,.45)'; c.lineWidth = 1.4 * ks; c.beginPath();
-        for (i = 0; i < 520; i++) {
-          var rx = B.x0 + ((i * 97.13 + t * 260 * 0.35) % B.w), ry = B.y0 + ((i * 53.7 + t * 520) % B.h);
-          c.moveTo(rx, ry); c.lineTo(rx - 4 * ks, ry + 13 * ks);
-        }
-        c.stroke();
-      }
+        if (!drops.length) for (i = 0; i < 520; i++) drops.push(drop(false));
+        var amt = Math.min(1, (rs - 0.45) / 0.2) * (0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 0.53) * Math.sin(t * 0.21 + 1)));
+        var n2 = drops.length * amt | 0, night = E.ne > 0.5;
+        [0.25, 0.45, 0.7].forEach(function (al, layer) {
+          c.strokeStyle = night ? 'rgba(170,190,255,' + al + ')' : 'rgba(80,110,170,' + (al * 0.85).toFixed(2) + ')';
+          c.lineWidth = (0.9 + layer * 0.35) * ks; c.beginPath();
+          for (var j = layer; j < n2; j += 3) {
+            var d = drops[j];
+            d.y += d.v * dt; d.x -= d.v * 0.3 * dt;
+            if (d.y > B.y1 || d.x < B.x0) drops[j] = d = drop(true);
+            c.moveTo(d.x, d.y); c.lineTo(d.x - d.l * 0.3 * ks, d.y + d.l * ks);
+          }
+          c.stroke();
+        });
+      } else drops.length = 0;
       // fireflies on warm nights
       var nf = E.ne > 0.5 && (E.season === 'spring' || E.season === 'summer') ? 22 : 0;
       // they live in the city (world coords) and follow the camera, so they stay put when the view is dragged away
@@ -3449,7 +3739,10 @@
     W = innerWidth; Hh = innerHeight;
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Hh);
     if (!bbox) {
+      var mn = document.getElementById('moon');   // the moon hangs above the city and must not shrink the fit
+      if (mn) mn.style.display = 'none';
       var b1 = L.world.getBBox(), b2 = L.tags.getBBox();
+      if (mn) mn.style.display = '';
       var x0 = Math.min(b1.x, b2.x), y0 = Math.min(b1.y, b2.y - 20), x1 = Math.max(b1.x + b1.width, b2.x + b2.width), y1 = Math.max(b1.y + b1.height, b2.y + b2.height);
       // ignore far-away clouds
       bbox = { x: Math.max(x0, -620), y: Math.max(y0, -260), w: 0, h: 0 };
@@ -3677,8 +3970,34 @@
       e.preventDefault();
       var fd = new FormData(f);
       var subject = 'Motion — ' + (fd.get('name') || '');
-      var body = (fd.get('msg') || '') + '\n\n— ' + (fd.get('name') || '') + ' <' + (fd.get('email') || '') + '>';
-      window.location.href = 'mailto:gmttuts@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      var key = f.getAttribute('data-key');
+      if (!key) {
+        var body = (fd.get('msg') || '') + '\n\n— ' + (fd.get('name') || '') + ' <' + (fd.get('email') || '') + '>';
+        window.location.href = 'mailto:gmttuts@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+        return;
+      }
+      // send straight to the inbox through Web3Forms
+      var btn = f.querySelector('.send'), msg = f.querySelector('.fmsg');
+      function say(ok, en, vi) {
+        msg.hidden = false; msg.classList.toggle('err', !ok);
+        msg.innerHTML = '<span lang="en">' + en + '</span><span lang="vi">' + vi + '</span>';
+      }
+      btn.disabled = true;
+      fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: key, subject: subject, from_name: 'GMT City',
+          name: fd.get('name'), email: fd.get('email'), message: fd.get('msg'),
+          botcheck: fd.get('botcheck') ? true : ''
+        })
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.success) throw j;
+        f.reset();
+        say(true, 'Sent! I will reply soon ✓', 'Đã gửi! Mình sẽ trả lời sớm ✓');
+      }).catch(function () {
+        say(false, 'Could not send. Please email gmttuts@gmail.com', 'Gửi chưa được. Hãy email gmttuts@gmail.com');
+      }).then(function () { btn.disabled = false; fitPanel(); });
     });
   }
   // Make the window fit its content without scrolling: go two-column when there
@@ -3731,9 +4050,42 @@
     SFX.click();
     applyLang(document.documentElement.getAttribute('data-lang') === 'vi' ? 'en' : 'vi');
   });
-  var bs = document.getElementById('b-sound');
-  function soundUI() { bs.setAttribute('aria-pressed', SFX.on ? 'true' : 'false'); bs.querySelector('.w').style.display = SFX.on ? '' : 'none'; }
-  bs.addEventListener('click', function () { SFX.set(!SFX.on); soundUI(); SFX.click(); });
+  // sound panel: master on/off plus separate music and effects volumes
+  var bs = document.getElementById('b-sound'), sp = document.getElementById('sndpop'), sOn = document.getElementById('snd-on');
+  var vm = document.getElementById('vol-mus'), vf = document.getElementById('vol-sfx');
+  function soundUI() {
+    bs.setAttribute('aria-pressed', SFX.on ? 'true' : 'false'); bs.querySelector('.w').style.display = SFX.on ? '' : 'none';
+    sOn.setAttribute('aria-pressed', SFX.on ? 'true' : 'false');
+    sOn.innerHTML = SFX.on ? '<span lang="en">Sound on</span><span lang="vi">Đang bật tiếng</span>' : '<span lang="en">Sound off</span><span lang="vi">Đang tắt tiếng</span>';
+    [['mus', vm], ['sfx', vf]].forEach(function (r) {
+      var v = Math.round(SFX.vol(r[0]) * 100);
+      r[1].value = v; document.getElementById(r[1].id + '-v').textContent = v;
+      r[1].parentNode.classList.toggle('off', !SFX.on);
+    });
+    var sg = SFX.song();
+    document.getElementById('snd-now').innerHTML = sg ? '♪ <span lang="en">Now playing: ' + sg.en + '</span><span lang="vi">Đang phát: ' + sg.vi + '</span>' : '';
+  }
+  SFX.onSong = function () { if (!sp.hidden) soundUI(); };
+  function soundPop(open) {
+    sp.hidden = !open; bs.setAttribute('aria-expanded', String(open));
+    if (open) { var ep = document.getElementById('envpop'); if (ep && !ep.hidden) ep.querySelector('[data-close]').click(); soundUI(); sOn.focus(); }
+  }
+  bs.addEventListener('click', function (e) { e.stopPropagation(); SFX.click(); soundPop(sp.hidden); });
+  document.getElementById('b-env').addEventListener('click', function () { soundPop(false); });
+  sp.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (e.target.closest('[data-close]')) { SFX.click(); soundPop(false); bs.focus(); }
+    else if (e.target.closest('#snd-on')) { SFX.set(!SFX.on); soundUI(); SFX.click(); }
+  });
+  [['mus', vm], ['sfx', vf]].forEach(function (r) {
+    r[1].addEventListener('input', function () {
+      SFX.vol(r[0], r[1].value / 100); document.getElementById(r[1].id + '-v').textContent = r[1].value;
+      if (!SFX.on) { SFX.set(true); soundUI(); }
+    });
+    if (r[0] === 'sfx') r[1].addEventListener('change', function () { SFX.click(); });
+  });
+  document.addEventListener('click', function (e) { if (!sp.hidden && !sp.contains(e.target) && e.target !== bs) soundPop(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sp.hidden) { soundPop(false); bs.focus(); } });
   soundUI();
 
   /* ================= CHARACTER SELECT + CLOSET ================= */
@@ -4024,6 +4376,96 @@
   var heroWrap = el('g', null, L.actors);
   heroWrap.appendChild(L.actors.querySelector('ellipse'));
   heroWrap.appendChild(hero.root);
+
+  /* ---------- star power: riding the slide down to the Motion Studio knocks its star loose ---------- */
+  // it springs up spinning, drops onto the hero, gets gobbled (a little shake), then ~10 s of rainbow aura,
+  // afterimages, sparkles and a fast chiptune; afterwards everything settles and the star is back on its box
+  var STAR_D = 'M0,-14 L4,-4 L14,-4 L6,3 L9,13 L0,7 L-9,13 L-6,3 L-14,-4 L-4,-4 Z';
+  var POW = { s: 'idle', t: 0, tt: 0, st: 0, bites: 0, trail: [], spark: [] };
+  var powStar = el('g', { 'pointer-events': 'none', display: 'none' }, L.fx);
+  el('circle', { r: 26, fill: 'url(#glowW)' }, powStar);
+  el('path', { d: STAR_D, fill: C.yellow, stroke: C.ink, 'stroke-width': 2, 'stroke-linejoin': 'round' }, powStar);
+  var auraG = el('radialGradient', { id: 'auraG' }, defs);
+  [[0, '#fffbe0', 0.95], [0.45, '#ffd23f', 0.55], [1, '#ff4fd8', 0]].forEach(function (s) { el('stop', { offset: s[0], 'stop-color': s[1], 'stop-opacity': s[2] }, auraG); });
+  var aura = el('g', { display: 'none' }, null);
+  hero.root.insertBefore(aura, hero.root.firstChild);
+  el('ellipse', { cx: 0, cy: -24, rx: 34, ry: 42, fill: 'url(#auraG)' }, aura);
+  // only on the way down: the same slide is also rewound uphill on trips back to the Workshop
+  SEG_END = function (s) { if (s.t === 'slide' && s.b[2] < s.a[2] && POW.s === 'idle' && STUDIO_STAR && hero.char !== 'astro') starLaunch(); };
+  function starLaunch() {
+    var p = STUDIO_STAR.at;
+    POW.s = 'fly'; POW.t = 0; POW.from = P(p[0], p[1], p[2]);
+    STUDIO_STAR.g.setAttribute('display', 'none');
+    powStar.setAttribute('display', '');
+    SFX.starPop();
+  }
+  function heroHead() { var sp = hero.sp || P(hero.x, hero.y, hero.z); return [sp[0], sp[1] - 46]; }
+  function powEnd() {
+    POW.s = 'idle';
+    hero.root.style.filter = '';
+    aura.setAttribute('display', 'none');
+    heroWrap.removeAttribute('transform');
+    POW.trail.concat(POW.spark).forEach(function (q) { q.n.remove(); });
+    POW.trail = []; POW.spark = [];
+    SFX.stopTune(); SFX.powerDown();
+    STUDIO_STAR.g.setAttribute('display', '');
+    SFX.pop();
+  }
+  anim(function (t, dt) {
+    if (POW.s === 'fly') {
+      POW.t += dt;
+      var T1 = RM ? 0.01 : 0.55, T2 = RM ? 0.01 : 0.45, f = POW.from, x, y, sc, u;
+      if (POW.t < T1) { u = POW.t / T1; u = 1 - (1 - u) * (1 - u); x = f[0]; y = f[1] - 150 * u; sc = 1 + 0.45 * u; }
+      else { u = Math.min(1, (POW.t - T1) / T2); var h = heroHead(), ay = f[1] - 150; x = f[0] + (h[0] - f[0]) * u; y = ay + (h[1] - ay) * u * u; sc = 1.45 - 0.65 * u; }
+      powStar.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ') rotate(' + (POW.t * 900 % 360).toFixed(0) + ') scale(' + sc.toFixed(2) + ')');
+      if (POW.t >= T1 + T2) { powStar.setAttribute('display', 'none'); POW.s = 'eat'; POW.t = 0; POW.bites = 0; }
+    } else if (POW.s === 'eat') {
+      POW.t += dt;
+      if (POW.t > POW.bites * 0.18) { POW.bites++; SFX.chomp(); }
+      if (!RM) heroWrap.setAttribute('transform', 'translate(' + ((Math.random() * 2 - 1) * 2.4).toFixed(1) + ',' + ((Math.random() * 2 - 1) * 1.5).toFixed(1) + ')');
+      if (POW.t > 0.6) {
+        heroWrap.removeAttribute('transform');
+        POW.s = 'power'; POW.t = 0; POW.until = performance.now() + 10000;   // real time, so it ends with the music
+        aura.setAttribute('display', '');
+        SFX.powerUp(); setTimeout(function () { if (POW.s === 'power') SFX.starTune(10); }, 300);
+      }
+    } else if (POW.s === 'power') {
+      POW.t += dt;
+      var hue = (t * 430) % 360;
+      hero.root.style.filter = 'hue-rotate(' + hue.toFixed(0) + 'deg) saturate(1.5) brightness(1.12)';
+      aura.setAttribute('transform', 'scale(' + (1 + 0.08 * Math.sin(t * 14)).toFixed(3) + ')');
+      if (!RM) {
+        // afterimages: fading snapshots of the hero in shifted colours
+        POW.tt += dt;
+        if (POW.tt > 0.07) {
+          POW.tt = 0;
+          var c = hero.root.cloneNode(true);
+          c.removeAttribute('class'); c.removeChild(c.firstChild);
+          c.style.filter = 'hue-rotate(' + ((hue + 140) % 360).toFixed(0) + 'deg) saturate(1.7)';
+          heroWrap.insertBefore(c, hero.root);
+          POW.trail.push({ n: c, life: 0.42 });
+        }
+        // sparkles drifting up around the hero
+        POW.st += dt;
+        if (POW.st > 0.09) {
+          POW.st = 0;
+          var hp = heroHead(), sx = hp[0] + (Math.random() * 2 - 1) * 28, sy = hp[1] + 10 + (Math.random() * 2 - 1) * 34;
+          var sp = el('path', { d: 'M0,-5 L1.3,-1.3 L5,0 L1.3,1.3 L0,5 L-1.3,1.3 L-5,0 L-1.3,-1.3 Z', fill: ['#fff', '#ffe14d', '#7df9ff', '#ff8af0'][Math.random() * 4 | 0] }, heroWrap);
+          POW.spark.push({ n: sp, x: sx, y: sy, life: 0.55 });
+        }
+      }
+      if (performance.now() > POW.until) powEnd();
+    }
+    for (var i = POW.trail.length - 1; i >= 0; i--) {
+      var q = POW.trail[i]; q.life -= dt;
+      if (q.life <= 0) { q.n.remove(); POW.trail.splice(i, 1); } else q.n.setAttribute('opacity', (q.life / 0.42 * 0.45).toFixed(2));
+    }
+    for (i = POW.spark.length - 1; i >= 0; i--) {
+      var k = POW.spark[i]; k.life -= dt; k.y -= 26 * dt;
+      if (k.life <= 0) { k.n.remove(); POW.spark.splice(i, 1); }
+      else k.n.setAttribute('transform', 'translate(' + k.x.toFixed(1) + ',' + k.y.toFixed(1) + ') scale(' + (Math.sin(k.life / 0.55 * Math.PI) * 1.2).toFixed(2) + ')');
+    }
+  });
   var lazy = 0;
   function refreshChipsLazy() { if (++lazy % 20 === 0) refreshChips(); }
 

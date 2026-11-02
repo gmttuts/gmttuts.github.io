@@ -170,8 +170,13 @@ button{font:inherit;color:inherit}
 .soc a:hover{background:var(--yellow)}
 .mail{display:block;font:700 19px/1.2 var(--mono);margin:4px 0 12px;word-break:break-all}
 form.f .send{width:100%;min-height:52px;justify-content:center;font-size:24px;margin-top:4px;gap:10px}
-form.f .send span{display:inline-flex;align-items:center;gap:10px}
+form.f .send span{display:inline-flex;align-items:center;gap:12px}
+form.f .send .ic{font-style:normal;font-size:1.55em;line-height:0;position:relative;top:-1px}
 form.f{display:grid;gap:8px}
+form.f .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+form.f .fmsg{margin:2px 0 0;padding:8px 10px;border:2px solid var(--ink);font:400 17px/1.2 var(--px);background:#d9ffe9}
+form.f .fmsg.err{background:#ffe0e0}
+form.f .send:disabled{opacity:.6;cursor:wait}
 form.f label{font:400 17px/1 var(--px);display:grid;gap:4px}
 form.f input,form.f textarea{font:14px/1.4 var(--mono);border:2px solid var(--ink);background:#fff;padding:8px;width:100%;border-radius:0}
 form.f textarea{min-height:72px;height:72px;resize:vertical}
@@ -399,8 +404,6 @@ body{transition:background-color .2s}
 .nsky{position:fixed;inset:0;pointer-events:none;opacity:0}
 .nsky .st{position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;animation:twk 3.2s ease-in-out infinite}
 .nsky .st2{animation-delay:-1.6s}
-.nsky .moon{position:absolute;right:14%;top:120px;width:64px;height:64px;border-radius:50%;background:#fff6d6;border:3px solid var(--ink);box-shadow:inset -14px -6px 0 #f1d98a,0 0 40px rgba(255,240,190,.35)}
-html[data-season="autumn"] .nsky .moon{width:92px;height:92px;background:#ffd08a;box-shadow:inset -18px -8px 0 #f2a65a,0 0 60px rgba(255,190,110,.4)}
 @keyframes twk{50%{opacity:.35}}
 .wx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 #city .ss{opacity:0;visibility:hidden;transition:opacity .9s,visibility .9s}
@@ -408,7 +411,8 @@ html[data-season="autumn"] .nsky .moon{width:92px;height:92px;background:#ffd08a
 #city .on-night{opacity:0;visibility:hidden;transition:opacity 1.2s,visibility 1.2s}
 #city.night .on-night{opacity:1;visibility:visible}
 #city .win-lit,#city .lamp-glass,#city .pool{transition:fill 1s}
-#city.night .win-lit{fill:#ffd25e}
+#city.night .win-lit{fill:#ffd25e;stroke:#16161d}
+#city.night .neon.n0{filter:url(#neon0)}#city.night .neon.n1{filter:url(#neon1)}#city.night .neon.n2{filter:url(#neon2)}
 #city.night .lamp-glass{fill:#ffd34d}
 #city.night .pool{fill:#38e6ff}
 #city.s-winter .slide-water{display:none}
@@ -428,6 +432,10 @@ html[data-season="autumn"] .nsky .moon{width:92px;height:92px;background:#ffd08a
 .envpop .eb[aria-pressed="true"]{background:var(--ink);color:var(--cream)}
 .envpop .eb.auto{width:100%;margin-top:2px}
 .env-note{margin:10px 0 0;font-size:12.5px;line-height:1.45}
+.sndpop .vol{display:grid;grid-template-columns:92px 1fr 40px;align-items:center;gap:8px;margin:10px 0 0;font:400 21px/1 var(--hd)}
+.sndpop .vol input{width:100%;accent-color:var(--ink);height:24px;cursor:pointer}
+.sndpop .vol b{font:400 19px/1 var(--px);text-align:right}
+.sndpop .vol.off{opacity:.45}
 @media (max-width:760px){.envpop{left:12px;right:12px;width:auto;top:64px}.top{gap:7px}.logo b{white-space:nowrap}.pbtn#b-env{padding:0 7px;gap:2px}.pbtn#b-env svg{width:15px;height:15px}}
 @media (max-width:370px){.logo span{display:none}.logo{padding:4px}}
 @media (prefers-reduced-motion:reduce){.nsky .st{animation:none}}
@@ -449,9 +457,17 @@ html[data-season="autumn"] .nsky .moon{width:92px;height:92px;background:#ffd08a
   <span class="sp"></span>
   <button class="pbtn" type="button" id="b-env" aria-haspopup="dialog" aria-expanded="false" aria-controls="envpop" aria-label="Time and season"></button>
   <button class="pbtn" type="button" id="b-char" aria-label="Select character"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.5" r="3.2" fill="currentColor"/><path fill="currentColor" d="M2 15.5q0-6.5 6-6.5t6 6.5z"/></svg><span class="cs-lbl"><span lang="en">CHARACTER</span><span lang="vi">NHÂN VẬT</span></span></button>
-  <button class="pbtn" type="button" id="b-sound" aria-pressed="true" aria-label="Sound"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 6h3l4-3v10l-4-3H2z"/><path class="w" fill="none" stroke="currentColor" stroke-width="1.6" d="M11 5.5q1.5 2.5 0 5M12.8 3.8q3 4.2 0 8.4"/></svg></button>
+  <button class="pbtn" type="button" id="b-sound" aria-haspopup="dialog" aria-expanded="false" aria-controls="sndpop" aria-label="Sound"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 6h3l4-3v10l-4-3H2z"/><path class="w" fill="none" stroke="currentColor" stroke-width="1.6" d="M11 5.5q1.5 2.5 0 5M12.8 3.8q3 4.2 0 8.4"/></svg></button>
   <button class="pbtn" type="button" id="b-lang"><span lang="en">VI</span><span lang="vi">EN</span></button>
 </header>
+
+<section class="envpop sndpop" id="sndpop" role="dialog" aria-labelledby="snd-title" hidden>
+  <h2 id="snd-title"><span><span lang="en">Sound</span><span lang="vi">Âm thanh</span></span><button type="button" data-close aria-label="Close">✕</button></h2>
+  <button type="button" class="eb auto" id="snd-on" aria-pressed="true"></button>
+  <label class="vol"><span><span lang="en">Music</span><span lang="vi">Nhạc nền</span></span><input type="range" min="0" max="100" step="5" id="vol-mus"><b id="vol-mus-v"></b></label>
+  <label class="vol"><span><span lang="en">Effects</span><span lang="vi">Hiệu ứng</span></span><input type="range" min="0" max="100" step="5" id="vol-sfx"><b id="vol-sfx-v"></b></label>
+  <p class="env-note" id="snd-now"></p>
+</section>
 
 <section class="envpop" id="envpop" role="dialog" aria-labelledby="env-title" hidden>
   <h2 id="env-title"><span><span lang="en">Time &amp; season</span><span lang="vi">Ngày đêm &amp; mùa</span></span><button type="button" data-close aria-label="Close">✕</button></h2>
@@ -648,13 +664,16 @@ html[data-season="autumn"] .nsky .moon{width:92px;height:92px;background:#ffd08a
     <h2><span lang="en">Post Office</span><span lang="vi">Bưu điện</span></h2>
     <h3><span lang="en">Hire me for motion</span><span lang="vi">Thuê làm motion</span></h3>
     <a class="mail" href="mailto:gmttuts@gmail.com">gmttuts@gmail.com</a>
-    <form class="f" data-mailto>
+    <!-- Web3Forms: paste the access key from web3forms.com into data-key. Empty = fall back to opening the mail app. -->
+    <form class="f" data-mailto data-key="db75b89c-6200-4074-91b9-196e95ef7a60">
+      <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
       <div class="two">
         <label><span><span lang="en">NAME</span><span lang="vi">TÊN</span></span><input name="name" autocomplete="name" required></label>
         <label>EMAIL<input name="email" type="email" autocomplete="email" required></label>
       </div>
       <label><span><span lang="en">MESSAGE</span><span lang="vi">LỜI NHẮN</span></span><textarea name="msg" required></textarea></label>
-      <button class="btn send" type="submit"><span lang="en">SEND ✉</span><span lang="vi">GỬI ✉</span></button>
+      <button class="btn send" type="submit"><span lang="en">SEND <i class="ic">✉</i></span><span lang="vi">GỬI <i class="ic">✉</i></span></button>
+      <p class="fmsg" role="status" hidden></p>
     </form>
     <h3 style="margin-top:22px"><span lang="en">Follow me</span><span lang="vi">Theo dõi tôi</span></h3>
     <div class="soc">
@@ -675,7 +694,7 @@ html[data-season="autumn"] .nsky .moon{width:92px;height:92px;background:#ffd08a
   <div class="ar-keys" id="ar-keys"></div>
 </section>
 
-<script src="city.js?v=94"></script>
+<script src="city.js?v=135"></script>
 <script src="games/minesweeper.js"></script>
 <script src="games/solitaire.js"></script>
 <script src="arcade.js"></script>
