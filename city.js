@@ -4388,7 +4388,8 @@
     while (over() && k > minK) { k -= 0.04; art.style.zoom = k.toFixed(2); }
     moreCue();
   }
-  // a cue at the bottom while there is more to scroll to; it goes once the end is reached
+  // a cue at the bottom while there is more to scroll to; it goes once the end is reached. It never takes taps,
+  // so a button half under it still opens
   var pxMore = document.getElementById('px-more');
   function moreCue() {
     if (!pxMore) return;
@@ -4396,7 +4397,6 @@
     panel.classList.toggle('more', pxBody.scrollHeight - pxBody.clientHeight - pxBody.scrollTop > 12);
   }
   pxBody.cityOn('scroll', moreCue, { passive: true });
-  if (pxMore) pxMore.cityOn('click', function () { pxBody.scrollBy({ top: pxBody.clientHeight * 0.7, behavior: 'smooth' }); });
   window.cityOn('resize', function () { if (!panel.hidden) fitPanel(); });
   function closePanel(silent) {
     if (panel.hidden) return;
