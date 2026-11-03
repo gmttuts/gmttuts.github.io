@@ -151,6 +151,11 @@ button{font:inherit;color:inherit}
 
 .me{display:flex;gap:14px;align-items:center;margin-bottom:6px}
 .me img{width:76px;height:76px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--orange);flex:none}
+/* Download CV: on the right of the name, sitting on the avatar's bottom edge */
+.me .cv{margin-left:auto;align-self:flex-end;margin-bottom:2px;display:inline-flex;align-items:center;gap:7px;flex:none;background:var(--yellow);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);font:400 21px/1 var(--hd);padding:7px 12px 8px;text-decoration:none;white-space:nowrap}
+.me .cv:hover{transform:translate(-1px,-2px);box-shadow:5px 6px 0 var(--ink)}
+.me .cv svg{width:17px;height:17px;display:block}
+.me .cv small{font:400 14px/1 var(--px);opacity:.7}
 .rows{display:grid;gap:6px;margin:10px 0 12px}
 .rows div{display:flex;justify-content:space-between;gap:10px;border:2px solid var(--ink);background:#fff;padding:6px 10px}
 .rows b{font:400 21px/1.2 var(--hd)}
@@ -587,6 +592,7 @@ body{transition:background-color .2s}
       <img src="avatar.jpg" alt="GMT" width="76" height="76">
       <div><h2 id="px-title">GMT</h2>
         <p style="margin:0"><span lang="en">Motion Designer &amp; Solo Founder</span><span lang="vi">Motion Designer &amp; Solo Founder</span></p></div>
+      <a class="cv" href="GMT-CV.pdf" target="_blank" rel="noopener" download="GMT-CV.pdf"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M7 1h2v7h2.5L8 11.5 4.5 8H7zM2 12h2v1.5h8V12h2v3.5H2z"/></svg><span lang="en">Download CV</span><span lang="vi">Tải CV</span> <small>PDF</small></a>
     </div>
     <p class="lead"><span lang="en">Where ideas get their first keyframe.</span><span lang="vi">Nơi ý tưởng có keyframe đầu tiên.</span></p>
     <div class="rows">
