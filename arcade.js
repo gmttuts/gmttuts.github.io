@@ -579,7 +579,7 @@
     unmountDom();
     mode = 'list'; game = null;
     fileEl.textContent = 'ARCADE.EXE';
-    body.innerHTML = '<div class="ar-head"><h2>Mini Arcade</h2><p>' + L('Pick a game — the yellow frame is your selection.', 'Chọn một trò — khung vàng là trò đang chọn.') + '</p></div>' +
+    body.innerHTML = '<div class="ar-head"><h2>Mini Arcade</h2><p>' + L('Pick a game. The yellow frame is your selection.', 'Chọn một trò, khung vàng là trò đang chọn.') + '</p></div>' +
       '<div class="ar-grid" role="listbox" aria-label="Games">' + GAMES.map(function (g, i) {
         return '<button type="button" class="ar-card" role="option" data-i="' + i + '" style="--c:' + g.col + '">' +
           '<span class="ar-thumb"><canvas width="320" height="240"></canvas><span class="ar-play">▶ PLAY</span></span>' +

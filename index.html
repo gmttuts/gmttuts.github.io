@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>GMT City — Building products for designers</title>
-<meta name="description" content="GMT – Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder, BetterDrop, Better Cleaner và Better Youtube Lyric.">
+<title>GMT City · Building products for designers</title>
+<meta name="description" content="GMT · Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder, BetterDrop, Better Cleaner và Better Youtube Lyric.">
 <meta name="theme-color" content="#f4f1e8">
 <meta property="og:type" content="website">
-<meta property="og:title" content="GMT City — Building products for designers">
+<meta property="og:title" content="GMT City · Building products for designers">
 <meta property="og:description" content="Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang xây Better Finder, BetterDrop, Better Cleaner và Better Youtube Lyric.">
 <meta property="og:url" content="https://gmttuts.github.io/">
 <meta property="og:image" content="https://gmttuts.github.io/avatar.jpg">
@@ -94,6 +94,8 @@ button{font:inherit;color:inherit}
 .zoom .pbtn{width:100%;padding:0;font-size:26px}
 .zoom .follow{height:58px;flex-direction:column;gap:4px;font-size:17px;line-height:1;padding-top:2px}
 .zoom .follow span{display:block;text-align:center}
+.zoom .vbtn .v-iso,.zoom .vbtn[aria-pressed="true"] .v-top{display:none}
+.zoom .vbtn[aria-pressed="true"] .v-iso{display:block}
 
 .route{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:5;background:var(--cream);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:6px 8px;max-width:calc(100vw - 24px)}
 .route ol{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:4px}
@@ -126,6 +128,14 @@ button{font:inherit;color:inherit}
 .pxbody p{margin:0 0 10px}
 .pxbody .kick{font:400 17px/1 var(--px);color:#fff;background:var(--purple);display:inline-block;padding:4px 6px;margin-bottom:8px}
 .pxbody .lead{font:400 31px/1.1 var(--hd);margin:6px 0 12px}
+/* when the window's content runs past the bottom: a fade, a bouncing cue and a visible scrollbar */
+.pxbody{scrollbar-width:thin;scrollbar-color:var(--ink) transparent}
+.pxbody::-webkit-scrollbar{width:8px}.pxbody::-webkit-scrollbar-thumb{background:var(--ink)}
+.pxmore{position:absolute;left:3px;right:3px;bottom:var(--fh,70px);height:64px;display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:0 0 8px;border:0;background:linear-gradient(rgba(251,248,240,0),var(--cream,#fbf8f0) 70%);font:400 19px/1 var(--px);color:var(--ink);cursor:pointer;opacity:0;pointer-events:none;transition:opacity .25s}
+.pxmore span:first-child,.pxmore span:last-child{animation:pxBob .7s ease-in-out infinite alternate}
+.pxwin.more .pxmore{opacity:1;pointer-events:auto}
+@keyframes pxBob{to{transform:translateY(4px)}}
+@media (prefers-reduced-motion:reduce){.pxmore span{animation:none!important}}
 .pxfoot{display:flex;align-items:stretch;gap:10px;padding:10px 13px 13px 10px;border-top:3px solid var(--ink);flex:none;background:#fff}
 .pxfoot button{flex:none;border:2px solid var(--ink);background:var(--cream);height:40px;padding:0 12px;cursor:pointer;font:400 21px/1 var(--hd);letter-spacing:.02em}
 .pxfoot button{box-shadow:3px 3px 0 var(--ink);display:flex;align-items:center;justify-content:center;min-width:44px}
@@ -142,6 +152,11 @@ button{font:inherit;color:inherit}
 .now-h{margin-bottom:4px}
 .now{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px}
 .now li{position:relative;padding-left:16px}
+/* Home: what I've made and what I'm making, side by side */
+.work{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin:2px 0 6px}
+.work h4{font:400 22px/1 var(--hd);margin:0 0 8px;padding-bottom:5px;border-bottom:2px solid var(--ink)}
+.work li b{display:block;line-height:1.2}
+.work li span{display:block;font-size:.92em;line-height:1.3;opacity:.8}
 .now li::before{content:"";position:absolute;left:2px;top:.55em;width:7px;height:7px;background:var(--ink)}
 .big{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px}
 .big div{border:2px solid var(--ink);background:#fff;padding:10px;box-shadow:3px 3px 0 var(--ink)}
@@ -150,6 +165,9 @@ button{font:inherit;color:inherit}
 .big div:nth-child(1){background:#ffe4d6}.big div:nth-child(2){background:#dcf7ea}.big div:nth-child(3){background:#e6e0ff}.big div:nth-child(4){background:#dbeaff}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;padding:0;list-style:none}
 .chips li{border:2px solid var(--ink);background:#fff;padding:3px 8px;font:400 19px/1.2 var(--hd)}
+/* one row whatever the width: the 7 names are ~15.6em of VT323, plus .6em padding each, plus borders and gaps */
+.chips.one{flex-wrap:nowrap;container-type:inline-size}
+.chips.one li{flex:1 1 auto;text-align:center;white-space:nowrap;padding:3px .3em;font-size:min(19px,calc((100cqi - 66px) / 20))}
 .chips.keys li{box-shadow:0 3px 0 var(--ink);margin-bottom:3px}
 .chips.keys li:nth-child(6n+1){background:#ffd9c7}.chips.keys li:nth-child(6n+2){background:#d4f5e5}.chips.keys li:nth-child(6n+3){background:#e2dcff}.chips.keys li:nth-child(6n+4){background:#fff0c2}.chips.keys li:nth-child(6n+5){background:#ffdcee}.chips.keys li:nth-child(6n+6){background:#d6e8ff}
 .card{border:2px solid var(--ink);background:#fff;padding:12px;margin:0 0 12px;box-shadow:4px 4px 0 var(--ink)}
@@ -443,11 +461,12 @@ body{transition:background-color .2s}
   .route button.next{animation:none;background:var(--yellow)}
   .pxwin.pop{animation:none}
 }
+
 </style>
 </head>
 <body>
 
-<svg id="city" role="application" aria-label="GMT City — isometric map. Use the route buttons below to visit each place."></svg>
+<svg id="city" role="application" aria-label="GMT City, isometric map. Use the route buttons below to visit each place."></svg>
 
 <header class="top">
   <a class="logo" href="./" aria-label="GMT City">
@@ -488,6 +507,7 @@ body{transition:background-color .2s}
 <div class="hint" id="hint"><span lang="en">Click a place to go there · start at ▶ 01</span><span lang="vi">Bấm vào một khu để tới đó · bắt đầu từ ▶ 01</span></div>
 
 <div class="zoom" role="group" aria-label="Zoom">
+  <button class="pbtn follow vbtn" type="button" id="z-view" aria-pressed="false" aria-label="Switch camera: top view or isometric"><svg class="v-top" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M1.5 1.5h13v13h-13zM8 1.5v13M1.5 8h13"/></svg><svg class="v-iso" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M8 1 15 4.6v6.8L8 15 1 11.4V4.6zM1 4.6 8 8.2 15 4.6M8 8.2V15"/></svg><span class="v-top"><span lang="en">TOP</span><span lang="vi">TRÊN</span></span><span class="v-iso">3D</span></button>
   <button class="pbtn" type="button" id="z-in" aria-label="Zoom in">+</button>
   <button class="pbtn" type="button" id="z-out" aria-label="Zoom out">−</button>
   <button class="pbtn" type="button" id="z-fit" aria-label="Show whole city"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4"/></svg></button>
@@ -546,6 +566,7 @@ body{transition:background-color .2s}
 <section class="pxwin" id="panel" role="dialog" aria-labelledby="px-title" hidden>
   <div class="pxbar"><span id="px-file">ABOUT.TXT</span><span class="stripes" aria-hidden="true"></span><button type="button" id="px-close" aria-label="Close">✕</button></div>
   <div class="pxbody" id="px-body"></div>
+  <button type="button" class="pxmore" id="px-more" tabindex="-1"><span>▼</span> <span lang="en">Scroll for more</span><span lang="vi">Cuộn xuống để xem thêm</span> <span>▼</span></button>
   <div class="pxfoot">
     <button type="button" id="px-prev" aria-label="Previous place">◀</button>
     <button type="button" class="nx" id="px-next"><span><span lang="en">NEXT</span><span lang="vi">TIẾP</span></span><span class="nm" id="px-next-name"></span><span>▶</span></button>
@@ -567,14 +588,25 @@ body{transition:background-color .2s}
       <div><span>Motion Designer</span><b><span lang="en">10 years</span><span lang="vi">10 năm</span></b></div>
       <div><span>Solo Founder</span><b><span lang="en">2 years</span><span lang="vi">2 năm</span></b></div>
     </div>
-    <p><span lang="en">For the last two years I've been building SaaS on my own: websites and apps for macOS and Windows, including tools for motion designers.</span><span lang="vi">2 năm nay tôi tự xây sản phẩm SaaS: website và ứng dụng cho macOS, Windows, trong đó có các công cụ dành cho motion designer.</span></p>
-    <p class="now-h"><b><span lang="en">Now building:</span><span lang="vi">Đang làm:</span></b></p>
-    <ul class="now">
-      <li><b>Better Finder</b> — <span lang="en">a Finder replacement made for multimedia people.</span><span lang="vi">ứng dụng thay thế Finder, dành cho dân làm multimedia.</span></li>
-      <li><b>BetterDrop</b> — <span lang="en">an AirDrop alternative that sends files across every device: Mac, Windows, Android and iOS.</span><span lang="vi">ứng dụng thay thế AirDrop, chuyển file tới mọi thiết bị: Mac, Windows, Android và iOS.</span></li>
-      <li><b>Better Cleaner</b> — <span lang="en">sweeps the junk files off your computer.</span><span lang="vi">dọn sạch file rác trên máy của bạn.</span></li>
-      <li><b>Better Youtube Lyric</b> — <span lang="en">a YouTube extension that finds lyrics and karaoke versions fast, right in the browser.</span><span lang="vi">extension cho YouTube, tìm nhanh lyric và bản karaoke ngay trên trình duyệt.</span></li>
-    </ul>
+    <p><span lang="en">I love how the world never stops moving, and I love making things easier for everyone.</span><span lang="vi">Tôi yêu cách thế giới luôn chuyển động, và yêu việc khiến trải nghiệm của mọi người trở nên dễ dàng hơn.</span></p>
+    <div class="work">
+      <div><h4><span lang="en">Made</span><span lang="vi">Đã làm</span></h4>
+      <ul class="now">
+        <li><b>Auto Layout</b><span lang="en">Auto layout for After Effects</span><span lang="vi">Auto layout cho After Effects</span></li>
+        <li><b>Keyframe Buddy</b><span lang="en">Pick keyframes with ease</span><span lang="vi">Chọn keyframe dễ dàng hơn</span></li>
+        <li><b>StackMaster</b><span lang="en">Brings layers back together</span><span lang="vi">Đưa các layer lại gần nhau</span></li>
+        <li><b>Mask Splitter</b><span lang="en">Splits a layer's masks apart</span><span lang="vi">Chia nhỏ mask của layer</span></li>
+        <li><b>NameSync</b><span lang="en">Keeps names in sync</span><span lang="vi">Đồng bộ tên</span></li>
+        <li><b>IlluRelease</b><span lang="en">Exports Ai artboards as files</span><span lang="vi">Tách artboard Ai thành từng file</span></li>
+      </ul></div>
+      <div><h4><span lang="en">Building now</span><span lang="vi">Đang làm</span></h4>
+      <ul class="now">
+        <li><b>Better Finder</b><span lang="en">A Finder for multimedia people</span><span lang="vi">Finder cho dân multimedia</span></li>
+        <li><b>BetterDrop</b><span lang="en">AirDrop for every device</span><span lang="vi">AirDrop cho mọi thiết bị</span></li>
+        <li><b>Better Cleaner</b><span lang="en">Clears out junk files</span><span lang="vi">Dọn sạch file rác</span></li>
+        <li><b>Better Youtube Lyric</b><span lang="en">Lyrics and karaoke on YouTube</span><span lang="vi">Tìm lyric, karaoke trên YouTube</span></li>
+      </ul></div>
+    </div>
   </article>
 
   <article data-zone="1">
@@ -583,11 +615,11 @@ body{transition:background-color .2s}
     <div class="big">
       <div><b>100+</b><span lang="en">motion clients</span><span lang="vi">khách hàng motion</span></div>
       <div><b>10</b><span lang="en">years of motion design</span><span lang="vi">năm làm motion</span></div>
-      <div><b>62M</b><span lang="en">views — Kimmese “Loving You”</span><span lang="vi">lượt xem — Kimmese “Loving You”</span></div>
-      <div><b>10K</b><span lang="en">visits a month (approx.) — Dezi Gallery</span><span lang="vi">khoảng 10.000 lượt truy cập mỗi tháng — Dezi Gallery</span></div>
+      <div><b>62M</b><span lang="en">views on Kimmese “Loving You”</span><span lang="vi">lượt xem Kimmese “Loving You”</span></div>
+      <div><b>10K</b><span lang="en">visits a month (approx.) on Dezi Gallery</span><span lang="vi">khoảng 10.000 lượt truy cập mỗi tháng trên Dezi Gallery</span></div>
     </div>
     <h3><span lang="en">Brands I've animated for</span><span lang="vi">Thương hiệu đã làm cùng</span></h3>
-    <ul class="chips"><li>Pepsi</li><li>CGV</li><li>Akamai</li><li>MoMo</li><li>Nabati</li><li>AllyBee</li><li>EasyRx</li><li>KGC</li><li>Zalo</li></ul>
+    <ul class="chips one"><li>Shopee</li><li>CGV</li><li>MoMo</li><li>AllyBee</li><li>EasyRx</li><li>Nabati</li><li>ZaloPay</li></ul>
     <p><span lang="en">…and dozens more.</span><span lang="vi">…và hàng chục thương hiệu khác.</span></p>
   </article>
 
@@ -595,24 +627,40 @@ body{transition:background-color .2s}
     <span class="kick">03 · PROJECTS</span>
     <h2><span lang="en">The Cinema</span><span lang="vi">Rạp phim</span></h2>
     <div class="card">
-      <h3>Kimmese – Loving You</h3>
+      <h3>Kimmese · Loving You</h3>
       <div class="res">62M <small style="font-size:16px"><span lang="en">views</span><span lang="vi">lượt xem</span></small></div>
       <dl>
         <dt><span lang="en">Role</span><span lang="vi">Vai trò</span></dt><dd>Motion Designer</dd>
-        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Character Animation, Rigging, Compositing <span lang="en">(with a team)</span><span lang="vi">(làm cùng team)</span></dd>
+        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Character Animation, Rigging, Compositing</dd>
         <dt><span lang="en">Tool</span><span lang="vi">Công cụ</span></dt><dd>After Effects</dd>
       </dl>
       <a class="btn" href="https://www.youtube.com/watch?v=GjSi4OxJORY" target="_blank" rel="noopener">▶ YOUTUBE ↗</a>
     </div>
     <div class="card">
-      <h3>CGV – House Rules</h3>
+      <h3>CGV · House Rules</h3>
       <div class="res"><span lang="en">22,000</span><span lang="vi">22.000</span> <small style="font-size:16px"><span lang="en">views</span><span lang="vi">lượt xem</span></small></div>
       <dl>
         <dt><span lang="en">Role</span><span lang="vi">Vai trò</span></dt><dd>Motion Designer</dd>
-        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Character Animation, Rigging, Compositing <span lang="en">(with a team)</span><span lang="vi">(làm cùng team)</span></dd>
+        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Character Animation, Rigging, Compositing</dd>
         <dt><span lang="en">Tool</span><span lang="vi">Công cụ</span></dt><dd>After Effects</dd>
       </dl>
       <a class="btn" href="https://www.youtube.com/watch?v=oT9zkvBXggY" target="_blank" rel="noopener">▶ YOUTUBE ↗</a>
+    </div>
+    <div class="card">
+      <h3>Kimmese · ITSABET (Lyric Video) ft. Andree Right Hand</h3>
+      <div class="res"><span lang="en">46,000</span><span lang="vi">46.000</span> <small style="font-size:16px"><span lang="en">views</span><span lang="vi">lượt xem</span></small></div>
+      <dl>
+        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Typo Animation</dd>
+      </dl>
+      <a class="btn" href="https://www.youtube.com/watch?v=jVWnhHJZcZg" target="_blank" rel="noopener">▶ YOUTUBE ↗</a>
+    </div>
+    <div class="card">
+      <h3>Cao Bá Hưng · Phong Lưu (The 1st EP)</h3>
+      <div class="res"><span lang="en">40,000</span><span lang="vi">40.000</span> <small style="font-size:16px"><span lang="en">views</span><span lang="vi">lượt xem</span></small></div>
+      <dl>
+        <dt><span lang="en">My part</span><span lang="vi">Phần việc</span></dt><dd>Character Animation, Rigging</dd>
+      </dl>
+      <a class="btn" href="https://www.youtube.com/watch?v=oF7nAcvhYmg" target="_blank" rel="noopener">▶ YOUTUBE ↗</a>
     </div>
   </article>
 
@@ -620,7 +668,7 @@ body{transition:background-color .2s}
     <span class="kick">04 · PRODUCT</span>
     <h2>Dezi Gallery</h2>
     <p class="lead" style="font-size:22px">The Design Inspiration Hub</p>
-    <p><span lang="en">A free design directory collecting websites that inspire — for designers, motion designers and creators.</span><span lang="vi">Design directory miễn phí, tổng hợp các website truyền cảm hứng thiết kế — dành cho designer, motion designer và creator.</span></p>
+    <p><span lang="en">A free design directory collecting websites that inspire, for designers, motion designers and creators.</span><span lang="vi">Design directory miễn phí, tổng hợp các website truyền cảm hứng thiết kế, dành cho designer, motion designer và creator.</span></p>
     <div class="big">
       <div><b>10K</b><span lang="en">visits a month (approx.)</span><span lang="vi">khoảng 10.000 lượt truy cập mỗi tháng</span></div>
       <div><b><span lang="en">Free</span><span lang="vi">Miễn phí</span></b><span lang="en">for everyone</span><span lang="vi">miễn phí cho mọi người</span></div>
@@ -629,7 +677,6 @@ body{transition:background-color .2s}
       <div><span><span lang="en">Role</span><span lang="vi">Vai trò</span></span><b>Founder</b></div>
       <div><span><span lang="en">I did</span><span lang="vi">Tôi làm</span></span><b><span lang="en">idea, planning, writing, marketing</span><span lang="vi">ý tưởng, planning, writing, marketing</span></b></div>
     </div>
-    <p style="font-size:13px"><span lang="en">UI and code by friends, hand-written (no no-code).</span><span lang="vi">Giao diện và code do bạn bè hỗ trợ, viết code thuần (không dùng no-code).</span></p>
     <a class="btn" href="https://dezi.gallery/" target="_blank" rel="noopener">DEZI.GALLERY ↗</a>
   </article>
 
@@ -682,7 +729,6 @@ body{transition:background-color .2s}
       <a href="https://www.facebook.com/GhostMastert/" target="_blank" rel="noopener">FACEBOOK <span>↗</span></a>
       <a href="https://www.instagram.com/nguyentuyen_gmt/" target="_blank" rel="noopener">INSTAGRAM <span>↗</span></a>
       <a href="https://www.linkedin.com/in/gmttuts" target="_blank" rel="noopener">LINKEDIN <span>↗</span></a>
-      <a href="https://dezi.gallery/" target="_blank" rel="noopener">DEZI <span>↗</span></a>
     </div>
   </article>
 
@@ -694,9 +740,9 @@ body{transition:background-color .2s}
   <div class="ar-keys" id="ar-keys"></div>
 </section>
 
-<script src="city.js?v=135"></script>
+<script src="city.js?v=145"></script>
 <script src="games/minesweeper.js"></script>
 <script src="games/solitaire.js"></script>
-<script src="arcade.js"></script>
+<script src="arcade.js?v=2"></script>
 </body>
 </html>
