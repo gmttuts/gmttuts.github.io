@@ -330,20 +330,24 @@
   var LINES = {
     vi: [
       ['GMT', 'Ông là ai? Đây là đâu vậy?'],
-      ['Motion God', 'Ta là chúa tể của vùng đất này. Ta đã chờ 1000 năm để gặp một người xứng đáng kế vị ta. Giờ ta sẽ kể cho ngươi câu chuyện của vùng đất này.'],
+      ['Motion God', 'Ta là chúa tể của vùng đất này. Ta đã chờ 1000 năm để gặp một người xứng đáng kế vị ta.'],
+      ['Motion God', 'Giờ ta sẽ kể cho ngươi câu chuyện của vùng đất này.'],
       ['Motion God', 'Thuở xưa, thế giới bên dưới đứng yên như một tấm ảnh. Không gió, không nước chảy, không một chiếc lá nào rơi.'],
       ['Motion God', 'Ta đặt chiếc keyframe đầu tiên. Từ đó mặt trời biết mọc, mặt trăng biết lặn, và bốn mùa bắt đầu luân phiên.'],
-      ['Motion God', 'Ta dạy những sinh vật nhỏ cách chuyển động: linear, easy ease, hold, auto bezier… Những kẻ không chịu học đã hoá đá quanh đây.'],
+      ['Motion God', 'Ta dạy những sinh vật nhỏ cách chuyển động: linear, easy ease, hold, auto bezier…'],
+      ['Motion God', 'Những kẻ không chịu học đã hoá đá quanh đây.'],
       ['Motion God', 'Nhưng ta đã già. Thành phố cần một người mới giữ cho mọi thứ tiếp tục chuyển động.'],
       ['Motion God', 'Ngươi đã tìm ra bí mật của ngôi sao và tìm được tới vùng đất của chuyển động này.'],
       ['Motion God', 'Là truyền nhân xứng đáng của ta và từ giờ, hãy nhận lấy sức mạnh này. Và nên nhớ là...']
     ],
     en: [
       ['GMT', 'Who are you? Where is this place?'],
-      ['Motion God', 'I am the lord of this land. For a thousand years I have waited for one worthy to succeed me. Now hear the story of this land.'],
+      ['Motion God', 'I am the lord of this land. For a thousand years I have waited for one worthy to succeed me.'],
+      ['Motion God', 'Now hear the story of this land.'],
       ['Motion God', 'Long ago, the world below stood still like a photograph. No wind, no flowing water, not a single falling leaf.'],
       ['Motion God', 'I set the very first keyframe. From then on the sun learned to rise, the moon to set, and the four seasons began to turn.'],
-      ['Motion God', 'I taught the little creatures how to move: linear, easy ease, hold, auto bezier… The ones who would not learn turned to stone around here.'],
+      ['Motion God', 'I taught the little creatures how to move: linear, easy ease, hold, auto bezier…'],
+      ['Motion God', 'The ones who would not learn turned to stone around here.'],
       ['Motion God', 'But I have grown old. The city needs someone new to keep everything in motion.'],
       ['Motion God', 'You found the secret of the star and made your way to this land of motion.'],
       ['Motion God', 'You are my worthy heir, and from now on, take this power. And remember...']
@@ -525,11 +529,11 @@
     else motionGod(sv, 0, -6, 0.95);
     return sv;
   }
-  function talk(host, lines) {
+  function talk(host, lines, lang) {
     return new Promise(function (done) {
       var box = document.createElement('div');
       box.className = 'egg-dlg';
-      box.innerHTML = '<div class="egg-pt"></div><div class="egg-tx"><b></b><p></p></div><button type="button" class="egg-skip">SKIP ▶</button><i class="egg-more">▼</i>';
+      box.innerHTML = '<div class="egg-pt"></div><div class="egg-tx"><b></b><p></p></div><button type="button" class="egg-skip">' + (lang === 'vi' ? 'BỎ QUA ▶' : 'SKIP ▶') + '</button><i class="egg-more">▼</i>';
       host.appendChild(box);
       var pt = box.querySelector('.egg-pt'), nm = box.querySelector('b'), tx = box.querySelector('p'), more = box.querySelector('.egg-more');
       var i = -1, typing = null, full = '', who = '';
@@ -786,14 +790,15 @@
     '.egg-pt{flex:none;width:118px;height:118px;background:#f4e3c8;border:3px solid #e7c97a;overflow:hidden}.egg-pt svg{width:100%;height:100%;display:block}' +
     '.egg-tx{flex:1;min-width:0;padding-top:4px}.egg-tx b{display:inline-block;margin:-30px 0 8px;background:#e7c97a;color:#16161d;border:3px solid #16161d;padding:2px 12px;font:400 24px/1 VT323,monospace}' +
     '.egg-tx p{margin:0;font:400 26px/1.3 VT323,monospace;letter-spacing:.3px;min-height:3.9em}' +
-    '.egg-skip{position:absolute;right:16px;bottom:12px;background:#fbf8f0;color:#16161d;border:3px solid #16161d;font:400 22px/1 VT323,monospace;padding:4px 12px;cursor:pointer}' +
-    '.egg-skip:hover{background:#ffc933}.egg-more{position:absolute;right:136px;bottom:18px;color:#e7c97a;font-style:normal;animation:eggBob .6s ease-in-out infinite alternate}' +
+    '.egg-skip{position:absolute;right:16px;top:-20px;background:#fbf8f0;color:#16161d;border:3px solid #16161d;font:400 22px/1 VT323,monospace;padding:4px 12px;cursor:pointer}' +
+    '.egg-skip:hover{background:#ffc933}.egg-more{position:absolute;right:16px;bottom:10px;color:#e7c97a;font-style:normal;animation:eggBob .6s ease-in-out infinite alternate}' +
     '@keyframes eggBob{to{transform:translateY(4px)}}' +
-    '.egg-motto{position:absolute;left:50%;top:7%;transform:translateX(-50%);max-width:calc(100% - 24px);text-align:center;background:rgba(43,33,64,.94);border:4px solid #e7c97a;color:#ffe14d;font:400 clamp(22px,5.4vw,46px)/1.15 VT323,monospace;padding:10px 22px;animation:eggShake .12s steps(2) infinite}' +
+    '.egg-motto{position:absolute;left:50%;top:8%;transform:translateX(-50%);max-width:calc(100% - 20px);text-align:center;background:rgba(43,33,64,.96);border:5px solid #e7c97a;box-shadow:0 0 0 4px #16161d,8px 8px 0 4px #16161d,0 0 60px 16px rgba(255,225,77,.55);color:#ffe14d;text-shadow:0 0 14px rgba(255,225,77,.8),3px 3px 0 #16161d;font:400 clamp(30px,7.6vw,80px)/1.08 VT323,monospace;padding:14px 26px;animation:eggIn .5s cubic-bezier(.2,1.6,.4,1) both,eggShake .12s steps(2) .5s infinite}' +
+    '@keyframes eggIn{0%{transform:translateX(-50%) scale(.3);opacity:0}100%{transform:translateX(-50%) scale(1);opacity:1}}' +
     '.egg-motto span{display:block;white-space:nowrap}' +
     '@keyframes eggShake{50%{transform:translateX(-50%) translate(1px,-1px)}}' +
     '.egg-fade{transition:opacity .7s ease}' +
-    '@media (max-width:600px){.egg-pt{width:72px;height:72px}.egg-tx p{font-size:21px}.egg-dlg{min-height:130px;padding:12px}.egg-more{right:120px}}';
+    '@media (max-width:600px){.egg-pt{width:64px;height:64px}.egg-tx p{font-size:21px;padding-right:6px}.egg-dlg{min-height:130px;padding:14px 12px 22px;gap:12px;bottom:14px}.egg-more{right:12px;bottom:6px}.egg-skip{right:10px;font-size:20px}}';
 
   function play(o) {
     o = o || {};
@@ -814,7 +819,7 @@
     var rant = RANT[lang].slice(), a = rant.splice(Math.random() * rant.length | 0, 1)[0], b = rant[Math.random() * rant.length | 0];
     staticTV(ov)
       .then(function () { buildLand(); return riseAndDescend(); })
-      .then(function () { return talk(ov, o.again ? [['Motion God', a], ['Motion God', b]] : LINES[lang]); })
+      .then(function () { return talk(ov, o.again ? [['Motion God', a], ['Motion God', b]] : LINES[lang], lang); })
       .then(function () { return o.again ? shoo() : bestow(lang); })
       .then(function () { S.liveOn = false; ov.innerHTML = ''; return fall(o.again ? 3600 : 6400); })
       .then(end, function (err) { if (window.console) console.error(err); end(); });

@@ -3036,7 +3036,7 @@
       seatBack.setAttribute('display', c === 'cloud' ? '' : 'none'); seatFront.setAttribute('display', c === 'cloud' ? '' : 'none');
       root.classList.toggle('cloud', c === 'cloud');
       // the cloud never walks, so nothing would ever turn him round again: always start facing the camera
-      if (c === 'cloud') { H.isBack = false; cloudLook(root); pose({ bob: 0, fL: [-4, 0], fR: [4, 0], hB: [-10.5, -13], hF: [10.5, -13] }); }
+      if (c === 'cloud') { H.isBack = false; cloudLook(root); pose(CLOUD_POSE); }
       else if (wasCloud) wear(root, look);
       H.hz = c === 'astro' || c === 'cloud' ? H.z : null;
       H.sq = 0;
@@ -3055,6 +3055,7 @@
     })(root);
     topShow();
     // posed copies for the closet turntable, at 0 / 45 / 90 / 135 / 180 degrees (the rest are mirrors)
+    var CLOUD_POSE = { bob: 0, fL: [-4, 0], fR: [4, 0], hB: [-10.5, -13], hF: [10.5, -13] };
     H.snapWalker = function (v) {
       v = v || 0;
       var b = H.isBack, f = H.face;
@@ -3065,6 +3066,9 @@
       var c = body.cloneNode(true);
       c.removeAttribute('display');   // the walker is hidden in the city while the astronaut plays
       H.isBack = b; H.face = f;
+      // posing for a snapshot used the live sprite: the walker re-poses every frame, the Cloud Rider never does,
+      // so put him back as he was (else the 180° preview leaves him showing his back)
+      if (H.char === 'cloud') pose(CLOUD_POSE);
       if (v === 90) {
         c.querySelectorAll('[data-v]').forEach(function (n) { n.setAttribute('display', n.getAttribute('data-v') === 'side' ? '' : 'none'); });
         var tq = c.querySelector('[data-part=torso]');
@@ -4943,7 +4947,7 @@
       else eggDone();
     }
     if (window.GMTEgg) run();
-    else { var sc = document.createElement('script'); sc.src = 'egg.js?v=7'; sc.onload = run; sc.onerror = eggDone; document.body.appendChild(sc); }
+    else { var sc = document.createElement('script'); sc.src = 'egg.js?v=9'; sc.onload = run; sc.onerror = eggDone; document.body.appendChild(sc); }
   }
   function eggDone() {
     EGG.playing = false; EGG.unlocked = true;
