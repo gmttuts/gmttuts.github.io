@@ -4351,7 +4351,7 @@
       var key = f.getAttribute('data-key');
       if (!key) {
         var body = (fd.get('msg') || '') + '\n\n— ' + (fd.get('name') || '') + ' <' + (fd.get('email') || '') + '>';
-        window.location.href = 'mailto:gmttuts@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+        window.location.href = 'mailto:hello@gmtcity.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
         return;
       }
       // send straight to the inbox through Web3Forms
@@ -4374,7 +4374,7 @@
         f.reset();
         say(true, 'Sent! I will reply soon ✓', 'Đã gửi! Mình sẽ trả lời sớm ✓');
       }).catch(function () {
-        say(false, 'Could not send. Please email gmttuts@gmail.com', 'Gửi chưa được. Hãy email gmttuts@gmail.com');
+        say(false, 'Could not send. Please email hello@gmtcity.com', 'Gửi chưa được. Hãy email hello@gmtcity.com');
       }).then(function () { btn.disabled = false; fitPanel(); });
     });
   }
