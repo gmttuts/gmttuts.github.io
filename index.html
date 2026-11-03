@@ -48,6 +48,9 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 html{font-synthesis:none}
+/* VT323 fuses f+i into one glyph ("first"): keep every letter separate. On every element, because the font
+   shorthand used throughout resets the ligature setting */
+*,*::before,*::after{font-variant-ligatures:none!important}
 body{
   overflow:hidden;color:var(--ink);font:14px/1.55 var(--mono);
   background-color:var(--paper);
@@ -599,7 +602,7 @@ body{transition:background-color .2s}
       <div><span>Motion Designer</span><b><span lang="en">10 years</span><span lang="vi">10 năm</span></b></div>
       <div><span>Solo Founder</span><b><span lang="en">2 years</span><span lang="vi">2 năm</span></b></div>
     </div>
-    <p><span lang="en">I love how the world never stops moving, and I love making things easier for everyone.</span><span lang="vi">Tôi yêu cách thế giới luôn chuyển động, và yêu việc khiến trải nghiệm của mọi người trở nên dễ dàng hơn.</span></p>
+    <p><span lang="en">I love how the world never stops moving,<br>and I love making things easier for everyone.</span><span lang="vi">Tôi yêu cách thế giới luôn chuyển động, và yêu việc khiến trải nghiệm của mọi người trở nên dễ dàng hơn.</span></p>
     <div class="work">
       <div><h4><span lang="en">Made</span><span lang="vi">Đã làm</span></h4>
       <ul class="now">
