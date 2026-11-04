@@ -318,13 +318,13 @@
 
   /* ================= ZONES ================= */
   var ZONES = [
-    { n: '01', en: 'Home', vi: 'Nhà', file: 'ABOUT.TXT', col: C.orange, b: [6, 15, 4, 3, 1], hb: 2.2 },
-    { n: '02', en: 'Stats Tower', vi: 'Tháp số liệu', file: 'STATS.EXE', col: C.green, b: [1, 9, 3, 3, 2], hb: 3.4 },
-    { n: '03', en: 'Cinema', vi: 'Rạp phim', file: 'PROJECTS.MP4', col: C.purple, b: [1, 2, 3, 3, 3], hb: 2.2 },
-    { n: '04', en: 'Dezi Gallery', vi: 'Dezi Gallery', file: 'DEZI.URL', col: C.blue, b: [7, 2, 3, 3, 3], hb: 4 },
+    { n: '01', en: 'Home', vi: 'Nhà', file: 'ABOUT.TXT', col: C.orange, b: [6, 15, 4, 3, 1], hb: 2.8, tt: [7.05, 15.1] },
+    { n: '02', en: 'Stats Tower', vi: 'Tháp số liệu', file: 'STATS.EXE', col: C.green, b: [1, 9, 3, 3, 2], hb: 3.4, tt: [1.5, 9.65] },
+    { n: '03', en: 'Cinema', vi: 'Rạp phim', file: 'PROJECTS.MP4', col: C.purple, b: [1, 2, 3, 3, 3], hb: 2.2, ta: [3.75, 2.35], tt: [2.25, 2.15] },
+    { n: '04', en: 'Dezi Gallery', vi: 'Dezi Gallery', file: 'DEZI.URL', col: C.blue, b: [7, 2, 3, 3, 3], hb: 2.2, ta: [8.95, 2.65], tt: [9.0, 2.2] },
     { n: '05', en: 'Workshop', vi: 'Xưởng kỹ năng', file: 'SKILLS.KEY', col: C.yellow, b: [12, 2, 3, 3, 2], hb: 2.2 },
-    { n: '06', en: 'Motion Studio', vi: 'Xưởng motion', file: 'SERVICES.AE', col: C.pink, b: [12, 9, 3, 3, 1], hb: 2.4 },
-    { n: '07', en: 'Post Office', vi: 'Bưu điện', file: 'CONTACT.MAIL', col: C.lilac, b: [12, 15, 3, 3, 1], hb: 3.5 }
+    { n: '06', en: 'Motion Studio', vi: 'Xưởng motion', file: 'SERVICES.AE', col: C.pink, b: [12, 9, 3, 3, 1], hb: 2.4, tt: [13.5, 9.3] },
+    { n: '07', en: 'Post Office', vi: 'Bưu điện', file: 'CONTACT.MAIL', col: C.lilac, b: [12, 15, 3, 3, 1], hb: 3.5, tt: [12.6, 15.1] }
   ];
 
   /* Route: closed loop. `s` marks the stop index of a zone. */
@@ -1744,10 +1744,13 @@
   ZONES.forEach(function (z, i) {
     var b = z.b, x = b[0], y = b[1], w = b[2], d = b[3], T = b[4] + z.hb;
     poly(L.hits, [P(x, y, T), P(x + w, y, T), P(x + w, y, 0), P(x + w, y + d, 0), P(x, y + d, 0), P(x, y + d, T)], 'transparent', { stroke: 'none', 'data-zone': i });
-    var tp = P(x + w / 2, y + d / 2, T + 0.35);
+    // `ta` pins the tag over the building itself when it sits off-centre on its lot
+    var tp = z.ta ? P(z.ta[0], z.ta[1], T + 0.35) : P(x + w / 2, y + d / 2, T + 0.35);
     if (VIEW === 'top') {
       var side = ['yd', 'x0', 'x0', 'y0', 'y0', 'y0', 'yd'][i], o = 0.95;
-      tp = side === 'x0' ? P(x - o, y + d / 2, b[4]) : side === 'y0' ? P(x + w / 2, y - o, b[4]) : P(x + w / 2, y + d + o, b[4]);
+      // `tt` pins the top-view tag next to the building instead of the lot edge
+      if (z.tt) tp = P(z.tt[0], z.tt[1], b[4]);
+      else tp = side === 'x0' ? P(x - o, y + d / 2, b[4]) : side === 'y0' ? P(x + w / 2, y - o, b[4]) : P(x + w / 2, y + d + o, b[4]);
     }
     var tg = el('g', { class: 'tag', 'data-zone': i, transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, L.tags);
     var inner = el('g', null, tg);
