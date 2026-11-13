@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GMT City · Where ideas get their first keyframe</title>
-<meta name="description" content="GMT: Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang làm Better Finder, BetterDrop và nhiều tool cho designer.">
+<meta name="description" content="GMT: Motion Designer 10 năm và Solo Founder. Người tạo Dezi Gallery, đang làm Better Explora, BetterDrop và nhiều tool cho designer.">
 <meta name="theme-color" content="#f4f1e8">
 <meta property="og:type" content="website">
 <meta property="og:title" content="GMT City · Where ideas get their first keyframe">
@@ -171,6 +171,15 @@ button{font:inherit;color:inherit}
 .work li b{display:block;line-height:1.2}
 .work li span{display:block;font-size:.92em;line-height:1.3;opacity:.8}
 .now li::before{content:"";position:absolute;left:2px;top:.55em;width:7px;height:7px;background:var(--ink)}
+/* Light secondary link button beside a product (only where there's a link) */
+.work li{display:grid;grid-template-columns:1fr auto;column-gap:10px;align-items:center}
+.work li>:not(.go){grid-column:1}
+.work li>.go{grid-column:2;grid-row:1/span 2;display:inline-flex;align-items:center;gap:5px;background:#fff;color:var(--ink);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);font:400 18px/1 var(--hd);padding:4px 8px 5px;text-decoration:none;white-space:nowrap;opacity:1}
+.work li>.go svg{width:11px;height:11px;display:block}
+.work li>.go:hover{background:var(--yellow);transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
+.work li>.go:active{transform:translate(1px,1px);box-shadow:0 0 0 var(--ink)}
+.work li>.go:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+@media (max-width:560px){.work{grid-template-columns:1fr;gap:12px}}
 .big{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px}
 .big div{border:2px solid var(--ink);background:#fff;padding:10px;box-shadow:3px 3px 0 var(--ink)}
 .big b{display:block;font:400 42px/1 var(--hd)}
@@ -606,19 +615,20 @@ body{transition:background-color .2s}
     <div class="work">
       <div><h4><span lang="en">Made</span><span lang="vi">Đã làm</span></h4>
       <ul class="now">
-        <li><b>Auto Layout</b><span lang="en">Auto layout for After Effects</span><span lang="vi">Auto layout cho After Effects</span></li>
-        <li><b>Keyframe Buddy</b><span lang="en">Pick keyframes with ease</span><span lang="vi">Chọn keyframe dễ dàng hơn</span></li>
-        <li><b>StackMaster</b><span lang="en">Brings layers back together</span><span lang="vi">Đưa các layer lại gần nhau</span></li>
-        <li><b>Mask Splitter</b><span lang="en">Splits a layer's masks apart</span><span lang="vi">Chia nhỏ mask của layer</span></li>
-        <li><b>NameSync</b><span lang="en">Keeps names in sync</span><span lang="vi">Đồng bộ tên</span></li>
-        <li><b>IlluRelease</b><span lang="en">Exports Ai artboards as files</span><span lang="vi">Tách artboard Ai thành từng file</span></li>
+        <li><b>Auto Layout</b><span lang="en">Auto layout for After Effects</span><span lang="vi">Auto layout cho After Effects</span><a class="go" href="https://gmttuts.gumroad.com/l/AEAutolayout" target="_blank" rel="noopener" aria-label="Auto Layout"><span lang="en">Open</span><span lang="vi">Mở</span><svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M4 1h7v7H9V4.4L2.4 11 1 9.6 7.6 3H4z"/></svg></a></li>
+        <li><b>Keyframe Buddy</b><span lang="en">Pick keyframes with ease</span><span lang="vi">Chọn keyframe dễ dàng hơn</span><a class="go" href="https://gmttuts.gumroad.com/l/KeyframeBuddy" target="_blank" rel="noopener" aria-label="Keyframe Buddy"><span lang="en">Open</span><span lang="vi">Mở</span><svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M4 1h7v7H9V4.4L2.4 11 1 9.6 7.6 3H4z"/></svg></a></li>
+        <li><b>StackMaster</b><span lang="en">Brings layers back together</span><span lang="vi">Đưa các layer lại gần nhau</span><a class="go" href="https://gmttuts.gumroad.com/l/mhlmjj" target="_blank" rel="noopener" aria-label="StackMaster"><span lang="en">Open</span><span lang="vi">Mở</span><svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M4 1h7v7H9V4.4L2.4 11 1 9.6 7.6 3H4z"/></svg></a></li>
+        <li><b>Mask Splitter</b><span lang="en">Splits a layer's masks apart</span><span lang="vi">Chia nhỏ mask của layer</span><a class="go" href="https://gmttuts.gumroad.com/l/MaskSplitter" target="_blank" rel="noopener" aria-label="Mask Splitter"><span lang="en">Open</span><span lang="vi">Mở</span><svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M4 1h7v7H9V4.4L2.4 11 1 9.6 7.6 3H4z"/></svg></a></li>
+        <li><b>NameSync</b><span lang="en">Keeps names in sync</span><span lang="vi">Đồng bộ tên</span><a class="go" href="https://gmttuts.gumroad.com/l/NameSync" target="_blank" rel="noopener" aria-label="NameSync"><span lang="en">Open</span><span lang="vi">Mở</span><svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M4 1h7v7H9V4.4L2.4 11 1 9.6 7.6 3H4z"/></svg></a></li>
+        <li><b>IlluRelease</b><span lang="en">Exports Ai artboards as files</span><span lang="vi">Tách artboard Ai thành từng file</span><a class="go" href="https://gmttuts.gumroad.com/l/IlluRelease" target="_blank" rel="noopener" aria-label="IlluRelease"><span lang="en">Open</span><span lang="vi">Mở</span><svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M4 1h7v7H9V4.4L2.4 11 1 9.6 7.6 3H4z"/></svg></a></li>
       </ul></div>
       <div><h4><span lang="en">Building now</span><span lang="vi">Đang làm</span></h4>
       <ul class="now">
-        <li><b>Better Finder</b><span lang="en">A Finder for multimedia people</span><span lang="vi">Finder cho dân multimedia</span></li>
+        <li><b>Better Karaoke</b><span lang="en">Lyrics and karaoke on YouTube</span><span lang="vi">Tìm lyric, karaoke trên YouTube</span><a class="go" href="https://chromewebstore.google.com/detail/better-karaoke/ifnmcjgaakcfaebkhommdidmldgefcjg" target="_blank" rel="noopener" aria-label="Better Karaoke"><span lang="en">Open</span><span lang="vi">Mở</span><svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M4 1h7v7H9V4.4L2.4 11 1 9.6 7.6 3H4z"/></svg></a></li>
+        <li><b>Better Emoji</b><span lang="en">Custom animated emoji for every app</span><span lang="vi">Tạo bộ emoji động, xuất mọi nền tảng</span></li>
+        <li><b>Better Explora</b><span lang="en">A Finder for multimedia people</span><span lang="vi">Finder cho dân multimedia</span></li>
         <li><b>BetterDrop</b><span lang="en">AirDrop for every device</span><span lang="vi">AirDrop cho mọi thiết bị</span></li>
         <li><b>Better Cleaner</b><span lang="en">Clears out junk files</span><span lang="vi">Dọn sạch file rác</span></li>
-        <li><b>Better Karaoke</b><span lang="en">Lyrics and karaoke on YouTube</span><span lang="vi">Tìm lyric, karaoke trên YouTube</span></li>
       </ul></div>
     </div>
   </article>
